@@ -1,9 +1,6 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.DeviceLoader;
-import com.dionialves.core.MikrotikManager;
-import com.dionialves.core.MimosaManager;
-import com.dionialves.core.UbiquitiManager;
+import com.dionialves.core.*;
 import com.dionialves.model.Device;
 
 import java.util.List;
@@ -34,7 +31,7 @@ public class Menu {
                 option = -1;
             }
 
-        } while (option != 4);
+        } while (option != 5);
         scanner.close();
     }
 
@@ -44,7 +41,8 @@ public class Menu {
         System.out.println("1 - Backup de Equipamentos Mikrotik");
         System.out.println("2 - Backup de Equipamentos Ubiquiti");
         System.out.println("3 - Backup de Equipamentos Mimosa");
-        System.out.println("4 - Sair");
+        System.out.println("4 - Backup de Equipamentos Datacom");
+        System.out.println("5 - Sair");
         System.out.println("------------------------------------");
     }
 
@@ -60,6 +58,9 @@ public class Menu {
                 this.mimosaProcess();
                 break;
             case 4:
+                this.datacomProcess();
+                break;
+            case 5:
                 System.out.println("\n👋 Saindo do programa.");
                 break;
             default:
@@ -112,4 +113,21 @@ public class Menu {
         MimosaManager mimosaManager = new MimosaManager(password);
         mimosaManager.backupOfListDevices(listOfDevices);
     }
+
+    private void datacomProcess() throws Exception {
+        System.out.println("\n✅ Iniciando o processo de backup para Equipamentos Datacom...");
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Digite o login do equipamento: ");
+        String username = scanner.nextLine();
+
+        System.out.print("Digite a senha do equipamento: ");
+        String password = scanner.nextLine();
+
+        List<Device> listOfDevices = DeviceLoader.loadDevices("Datacom", "216");
+
+        DatacomManager datacomManager = new DatacomManager(username, password);
+        datacomManager.backupOfListDevices(listOfDevices);
+    }
+
 }
