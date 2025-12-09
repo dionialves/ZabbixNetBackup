@@ -15,9 +15,9 @@ import java.util.List;
 import java.util.Map;
 
 public class ZabbixClient {
-    private final String url = "http://zabbix.asngetel.net.br/zabbix/api_jsonrpc.php";
-    private final String username = "api";
-    private final String password = "il6D76IrrfKj";
+    private final String url = System.getenv("ZABBIX_URL");
+    private final String username = System.getenv("ZABBIX_USER");
+    private final String password = System.getenv("ZABBIX_PASS");
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
     private String authToken = null;
