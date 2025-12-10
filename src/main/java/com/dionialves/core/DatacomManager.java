@@ -28,7 +28,6 @@ public class DatacomManager {
         SSHClient ssh = new SSHClient();
         ssh.addHostKeyVerifier(new PromiscuousVerifier());
 
-
         ssh.connect(device.getIp(), device.getPort());
         ssh.authPassword(this.username, this.password);
 

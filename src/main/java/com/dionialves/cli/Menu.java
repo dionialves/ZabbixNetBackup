@@ -31,7 +31,7 @@ public class Menu {
                 option = -1;
             }
 
-        } while (option != 5);
+        } while (option != 6);
         scanner.close();
     }
 
@@ -42,7 +42,8 @@ public class Menu {
         System.out.println("2 - Backup de Equipamentos Ubiquiti");
         System.out.println("3 - Backup de Equipamentos Mimosa");
         System.out.println("4 - Backup de Equipamentos Datacom");
-        System.out.println("5 - Sair");
+        System.out.println("5 - Backup de Equipamentos Cisco");
+        System.out.println("6 - Sair");
         System.out.println("------------------------------------");
     }
 
@@ -61,15 +62,18 @@ public class Menu {
                 this.datacomProcess();
                 break;
             case 5:
+                this.ciscoProcess();
+                break;
+            case 6:
                 System.out.println("\n👋 Saindo do programa.");
                 break;
             default:
-                System.out.println("\n⚠️ Opção" + option + " não reconhecida. Por favor, escolha uma opção válida (1 a 4).");
+                System.out.println("\n⚠️ Opção" + option + " não reconhecida. Por favor, escolha uma opção válida (1 a 6).");
         }
     }
 
     private void mikrotikProcess() throws Exception {
-        System.out.println("\n✅ Iniciando o processo de backup para Equipamentos Mikrotik...");
+        System.out.println("\nIniciando o processo de backup para Equipamentos Mikrotik...");
 
         Scanner scanner = new Scanner(System.in);
         System.out.print("Digite o login do equipamento: ");
@@ -81,11 +85,11 @@ public class Menu {
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mikrotik", "209");
 
         MikrotikManager mikrotikManager = new MikrotikManager(username, password);
-        mikrotikManager.backupOfListDevices(listOfDevices);
+        mikrotikManager.backupDevices(listOfDevices);
     }
 
     private void ubiquitiProcess() throws Exception {
-        System.out.println("\n✅ Iniciando o processo de backup para Equipamentos Ubiquiti...");
+        System.out.println("\nIniciando o processo de backup para Equipamentos Ubiquiti...");
 
         Scanner scanner = new Scanner(System.in);
         System.out.print("Digite o login do equipamento: ");
@@ -101,7 +105,7 @@ public class Menu {
     }
 
     private void mimosaProcess() throws Exception {
-        System.out.println("\n✅ Iniciando o processo de backup para Equipamentos Mimosa...");
+        System.out.println("\nIniciando o processo de backup para Equipamentos Mimosa...");
 
         Scanner scanner = new Scanner(System.in);
 
@@ -115,7 +119,7 @@ public class Menu {
     }
 
     private void datacomProcess() throws Exception {
-        System.out.println("\n✅ Iniciando o processo de backup para Equipamentos Datacom...");
+        System.out.println("\nIniciando o processo de backup para Equipamentos Datacom...");
 
         Scanner scanner = new Scanner(System.in);
         System.out.print("Digite o login do equipamento: ");
@@ -130,4 +134,19 @@ public class Menu {
         datacomManager.backupOfListDevices(listOfDevices);
     }
 
+    private void ciscoProcess() throws Exception {
+        System.out.println("\nIniciando o processo de backup para Equipamentos Cisco...");
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Digite o login do equipamento: ");
+        String username = scanner.nextLine();
+
+        System.out.print("Digite a senha do equipamento: ");
+        String password = scanner.nextLine();
+
+        List<Device> listOfDevices = DeviceLoader.loadDevices("Cisco", "217");
+
+        CiscoManager ciscoManager = new CiscoManager(username, password);
+        ciscoManager.backupDevices(listOfDevices);
+    }
 }

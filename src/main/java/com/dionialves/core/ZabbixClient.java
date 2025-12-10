@@ -13,14 +13,23 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import io.github.cdimascio.dotenv.Dotenv;
+
 
 public class ZabbixClient {
-    private final String url = System.getenv("ZABBIX_URL");
-    private final String username = System.getenv("ZABBIX_USER");
-    private final String password = System.getenv("ZABBIX_PASS");
+    private final String url;
+    private final String username;
+    private final String password;
     private final HttpClient client = HttpClient.newHttpClient();
     private final Gson gson = new Gson();
     private String authToken = null;
+
+    public ZabbixClient() {
+        Dotenv dotenv = Dotenv.load();
+        this.url = dotenv.get("ZABBIX_URL");
+        this.username = dotenv.get("ZABBIX_USERNAME");
+        this.password = dotenv.get("ZABBIX_PASSWORD");
+    }
 
     public boolean login() throws Exception {
         JsonObject params = new JsonObject();
@@ -86,6 +95,9 @@ public class ZabbixClient {
 
         JsonArray hosts = response.getAsJsonArray("result");
         List<Map<String, String>> lista = new ArrayList<>();
+
+
+        if (hosts == null) return lista;
 
         for (JsonElement elem : hosts) {
             JsonObject hostObj = elem.getAsJsonObject();

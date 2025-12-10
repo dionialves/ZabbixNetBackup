@@ -2,15 +2,14 @@ package com.dionialves.core;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.util.List;
 
 import net.schmizz.sshj.SSHClient;
-import net.schmizz.sshj.connection.ConnectionException;
 import net.schmizz.sshj.connection.channel.direct.Session;
 import net.schmizz.sshj.sftp.SFTPClient;
-import net.schmizz.sshj.transport.TransportException;
 import net.schmizz.sshj.transport.verification.PromiscuousVerifier;
 
 
@@ -18,68 +17,37 @@ import com.dionialves.model.Device;
 
 public class MikrotikManager {
 
-    private String username;
-    private String password;
+    private final String username;
+    private final String password;
 
     public MikrotikManager(String username, String password) {
         this.username = username;
         this.password = password;
     }
 
-    private SSHClient connectAndLogin(Device device) throws IOException {
-        SSHClient ssh = new SSHClient();
-        ssh.addHostKeyVerifier(new PromiscuousVerifier());
+    public void backupDevices(List<Device> listOfDevices) throws IOException {
 
+        String backupDirectory = this.createBackupDirectory();
 
-        ssh.connect(device.getIp(), device.getPort());
-        ssh.authPassword(this.username, this.password);
-
-        return ssh;
-
-    }
-
-    private void createFileBackup(SSHClient ssh, String filename) throws IOException {
-
-        try (Session session = ssh.startSession()) {
-            Session.Command cmd = session.exec("/export file=" + filename);
-            cmd.join();
-        }
-
-    }
-
-    private void downloadBackup(SSHClient ssh, String filename) throws IOException {
-        String baseDir = System.getProperty("user.dir");
-        String backupDir = baseDir + "/backup/Mikrotik";
-        String backupTodayDir = backupDir + "/" + LocalDate.now();
-
-        Files.createDirectories(Paths.get(backupDir));
-        Files.createDirectories(Paths.get(backupTodayDir));
-
-        String remote = "/" + filename;
-        String local = backupTodayDir + "/" + filename;
-
-        try (SFTPClient sftp = ssh.newSFTPClient()) {
-            sftp.get(remote, local);
+        for (Device device: listOfDevices) {
+            this.backupDevice(device, backupDirectory);
         }
     }
 
-    private void deleteFileBackup(SSHClient ssh, String filename)  throws IOException  {
-        try (Session session = ssh.startSession()) {
-            Session.Command cmd = session.exec("/file remove [find name=" + filename + "]");
-            cmd.join();
-        }
+    private String createBackupDirectory() throws IOException {
+        Path base = Path.of(System.getProperty("user.dir"), "backup", "Mikrotik", LocalDate.now().toString());
+        Files.createDirectories(base);
+        return base.toString();
     }
 
-    private void createBackup(Device device) throws IOException {
+    private void backupDevice(Device device, String backupDirectory) {
         String filename = device.getIp() + ".rsc";
 
-        try {
-            SSHClient ssh = this.connectAndLogin(device);
-            this.createFileBackup(ssh, filename);
-            this.downloadBackup(ssh, filename);
-            this.deleteFileBackup(ssh, filename);
+        try (SSHClient ssh = this.connect(device)) {
 
-            ssh.disconnect();
+            this.createFileBackup(ssh, filename);
+            this.downloadBackup(ssh, filename, backupDirectory);
+            this.deleteFileBackup(ssh, filename);
 
             System.out.println("SUCCESS: " + device.getIp());
         }
@@ -88,26 +56,38 @@ public class MikrotikManager {
         }
     }
 
-    public void backupOfListDevices(List<Device> listOfDevices) throws IOException {
+    private SSHClient connect(Device device) throws IOException {
+        SSHClient ssh = new SSHClient();
+        ssh.addHostKeyVerifier(new PromiscuousVerifier());
 
-        for (Device device: listOfDevices) {
-            this.createBackup(device);
+        ssh.connect(device.getIp(), device.getPort());
+        ssh.authPassword(this.username, this.password);
+
+        return ssh;
+    }
+
+    private void createFileBackup(SSHClient ssh, String filename) throws IOException {
+        executeCommand(ssh, "/export file=" + filename);
+    }
+
+    private void downloadBackup(SSHClient ssh, String filename, String backupDirectory) throws IOException {
+
+        String remote = "/" + filename;
+        String local = backupDirectory + "/" + filename;
+
+        try (SFTPClient sftp = ssh.newSFTPClient()) {
+            sftp.get(remote, local);
         }
     }
 
-    public String getUsername() {
-        return username;
+    private void deleteFileBackup(SSHClient ssh, String filename)  throws IOException  {
+        executeCommand(ssh, "/file remove [find name=" + filename + "]");
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
+    private void executeCommand(SSHClient ssh, String command) throws IOException {
+        try (Session session = ssh.startSession()) {
+            Session.Command cmd = session.exec(command);
+            cmd.join();
+        }
     }
 }

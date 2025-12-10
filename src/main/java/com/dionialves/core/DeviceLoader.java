@@ -35,7 +35,7 @@ public class DeviceLoader {
 
         }
 
-        System.out.println("✅ Leitura de arquivo concluída. " + listOfDevices.size() + " equipamentos do tipo " + manufacturer + " carregados.");
+        System.out.println("\nLeitura de arquivo concluída. " + listOfDevices.size() + " equipamentos do tipo " + manufacturer + " carregados.");
 
         return listOfDevices;
     }
