@@ -37,7 +37,7 @@ public class CiscoManager {
 
     private String createBackupDirectory() throws IOException {
         String baseDir = System.getProperty("user.dir");
-        String backupRoot = Paths.get(baseDir, "backup", "Cisco").toString();
+        String backupRoot = Paths.get(baseDir, "backup", "cisco").toString();
         String todayDir = Paths.get(backupRoot, LocalDate.now().format(DATE_FORMATTER)).toString();
 
         try {

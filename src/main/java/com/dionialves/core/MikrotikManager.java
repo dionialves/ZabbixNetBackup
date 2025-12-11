@@ -35,7 +35,7 @@ public class MikrotikManager {
     }
 
     private String createBackupDirectory() throws IOException {
-        Path base = Path.of(System.getProperty("user.dir"), "backup", "Mikrotik", LocalDate.now().toString());
+        Path base = Path.of(System.getProperty("user.dir"), "backup", "mikrotik", LocalDate.now().toString());
         Files.createDirectories(base);
         return base.toString();
     }

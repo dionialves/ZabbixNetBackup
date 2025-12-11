@@ -47,7 +47,7 @@ public class DatacomManager {
             String output = IOUtils.readFully(cmd.getInputStream()).toString(StandardCharsets.UTF_8);
 
             String baseDir = System.getProperty("user.dir");
-            String backupDir = baseDir + "/backup/Datacom";
+            String backupDir = baseDir + "/backup/datacom";
             String backupTodayDir = backupDir + "/" + LocalDate.now();
 
             Files.createDirectories(Paths.get(backupDir));
