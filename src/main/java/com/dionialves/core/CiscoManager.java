@@ -55,6 +55,12 @@ public class CiscoManager {
 
         try {
             Session session = this.connect(device);
+
+            if (session == null || !session.isConnected()) {
+                System.out.println("FAILURE: " + device.getIp() + " - Session could not be established.");
+                return;
+            }
+
             String config = fetchRunningConfig(session);
             writeConfigToFile(config, filePath);
 
@@ -77,7 +83,11 @@ public class CiscoManager {
         config.put("pubkeyacceptedalgorithms", "ssh-rsa,ssh-dss");
 
         session.setConfig(config);
-        session.connect(CONNECTION_TIMEOUT_MS);
+        try {
+            session.connect(CONNECTION_TIMEOUT_MS);
+        } catch (JSchException e) {
+            session.disconnect();
+        }
 
         return session;
     }
