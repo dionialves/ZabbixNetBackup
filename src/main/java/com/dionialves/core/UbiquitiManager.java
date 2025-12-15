@@ -34,7 +34,7 @@ public class UbiquitiManager {
 
     private void downloadBackup(SSHClient ssh, String filename) throws IOException {
         String baseDir = System.getProperty("user.dir");
-        String backupDir = baseDir + "/backup/ubiquit";
+        String backupDir = baseDir + "/backup/ubiquiti";
         String backupTodayDir = backupDir + "/" + LocalDate.now();
 
         Files.createDirectories(Paths.get(backupDir));
