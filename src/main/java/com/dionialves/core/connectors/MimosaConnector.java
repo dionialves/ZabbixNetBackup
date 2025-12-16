@@ -1,4 +1,4 @@
-package com.dionialves.core;
+package com.dionialves.core.connectors;
 
 import com.dionialves.model.Device;
 
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class MimosaManager {
+public class MimosaConnector {
 
     private static final String USER = "configure";
 
@@ -24,7 +24,7 @@ public class MimosaManager {
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
 
-    public MimosaManager(String password) {
+    public MimosaConnector(String password) {
         this.setPassword(password);
     }
 

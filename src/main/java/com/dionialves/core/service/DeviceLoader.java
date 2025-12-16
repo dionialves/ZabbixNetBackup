@@ -1,14 +1,11 @@
-package com.dionialves.core;
-import java.io.BufferedReader;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
-import java.io.IOException;
+package com.dionialves.core.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 
+import com.dionialves.core.integration.ZabbixClient;
 import com.dionialves.model.Device;
 
 public class DeviceLoader {

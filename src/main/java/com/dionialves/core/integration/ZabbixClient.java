@@ -1,4 +1,4 @@
-package com.dionialves.core;
+package com.dionialves.core.integration;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -129,7 +129,5 @@ public class ZabbixClient {
 
         return lista;
     }
-
-
 
 }

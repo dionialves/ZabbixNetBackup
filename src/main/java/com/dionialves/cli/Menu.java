@@ -1,6 +1,7 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.*;
+import com.dionialves.core.connectors.*;
+import com.dionialves.core.service.DeviceLoader;
 import com.dionialves.model.Device;
 
 import java.util.List;
@@ -84,8 +85,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mikrotik", "209");
 
-        MikrotikManager mikrotikManager = new MikrotikManager(username, password);
-        mikrotikManager.backupDevices(listOfDevices);
+        MikrotikConnector mikrotikConnector = new MikrotikConnector(username, password);
+        mikrotikConnector.backupDevices(listOfDevices);
     }
 
     private void ubiquitiProcess() throws Exception {
@@ -100,8 +101,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Ubiquiti", "214");
 
-        UbiquitiManager ubiquitiManager = new UbiquitiManager(username, password);
-        ubiquitiManager.backupOfListDevices(listOfDevices);
+        UbiquitiConnector ubiquitiConnector = new UbiquitiConnector(username, password);
+        ubiquitiConnector.backupDevices(listOfDevices);
     }
 
     private void mimosaProcess() throws Exception {
@@ -114,8 +115,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mimosa", "215");
 
-        MimosaManager mimosaManager = new MimosaManager(password);
-        mimosaManager.backupOfListDevices(listOfDevices);
+        MimosaConnector mimosaConnector = new MimosaConnector(password);
+        mimosaConnector.backupOfListDevices(listOfDevices);
     }
 
     private void datacomProcess() throws Exception {
@@ -130,8 +131,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Datacom", "216");
 
-        DatacomManager datacomManager = new DatacomManager(username, password);
-        datacomManager.backupOfListDevices(listOfDevices);
+        DatacomConnector datacomConnector = new DatacomConnector(username, password);
+        datacomConnector.backupDevices(listOfDevices);
     }
 
     private void ciscoProcess() throws Exception {
@@ -146,7 +147,7 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Cisco", "217");
 
-        CiscoManager ciscoManager = new CiscoManager(username, password);
-        ciscoManager.backupDevices(listOfDevices);
+        CiscoConnector ciscoConnector = new CiscoConnector(username, password);
+        ciscoConnector.backupDevices(listOfDevices);
     }
 }
