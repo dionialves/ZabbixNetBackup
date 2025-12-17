@@ -1,15 +1,17 @@
 package com.dionialves.core.connectors;
 
 import com.dionialves.model.Device;
-import com.jcraft.jsch.JSchException;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.FileOutputStream;
+import java.io.UncheckedIOException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
 import java.net.URI;
-import java.net.http.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -17,93 +19,130 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MimosaHttpConnector {
+    private final String user;
+    private final String password;
+    private final String vendor;
 
-    private static final String USER = "configure";
-    private String password;
-
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
+    private static final String BACKUP_FILE_EXTENSION = ".cfg";
 
-    public MimosaHttpConnector(String password) {
-        this.setPassword(password);
+    public MimosaHttpConnector(String user, String password, String vendor) {
+        this.password = setPassword(password);
+        this.user = user;
+        this.vendor = vendor;
     }
 
-    public void backupOfListDevices(List<Device> listOfDevices) throws IOException, InterruptedException {
+    public void backupDevices(List<Device> devices) throws IOException, InterruptedException {
 
-        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-        Path folderBackup = Path.of("backup/mimosa", today);
+        Path backupDir = this.createBackupDirectory(this.vendor);
 
-        Files.createDirectories(folderBackup);
-
-        for (Device device : listOfDevices) {
-            createBackup(device, folderBackup);
+        for (Device device : devices) {
+            this.backupDevice(device, backupDir);
         }
     }
 
-    private void createBackup(Device device, Path folderBackup) throws IOException, InterruptedException {
+    private Path createBackupDirectory(String vendor) {
+        Path todayDir = Path.of(
+                System.getProperty("user.dir"),
+                "backup",
+                vendor,
+                LocalDate.now().format(DATE_FORMATTER)
+        );
 
+        try {
+            Files.createDirectories(todayDir);
+        } catch (IOException e) {
+            throw new UncheckedIOException(
+                    "Erro ao criar diretório de backup: " + todayDir, e
+            );
+        }
+
+        return todayDir;
+    }
+
+    private void backupDevice(Device device, Path backupFolder) throws IOException, InterruptedException {
+        Path outputFile = backupFolder.resolve(device.getIp() + ".conf");
+
+        HttpClient client = createHttpClient();
         String baseUrl = "http://" + device.getIp();
-        URI loginUri = URI.create(baseUrl + LOGIN_PATH);
-        URI downloadUri = URI.create(baseUrl + DOWNLOAD_QUERY);
 
-        Path arquivoSaida = folderBackup.resolve(device.getIp() + ".conf");
+        if (authenticate(client, baseUrl)) {
+            downloadAndSaveBackup(client, baseUrl, outputFile, device.getIp());
+        } else {
+            logFailure(device.getIp(), "Authentication failed");
+        }
+    }
 
+    private HttpClient createHttpClient() {
         CookieManager cookieManager = new CookieManager(null, CookiePolicy.ACCEPT_ALL);
 
-        HttpClient client = HttpClient.newBuilder()
+        return HttpClient.newBuilder()
                 .cookieHandler(cookieManager)
                 .followRedirects(HttpClient.Redirect.NORMAL)
                 .build();
+    }
 
-        String form = "username=" + USER + "&password=" + password;
+    private boolean authenticate(HttpClient client, String baseUrl) throws IOException, InterruptedException {
+        URI loginUri = URI.create(baseUrl + LOGIN_PATH);
+        String formData = "username=" + this.user + "&password=" + this.password;
 
-        HttpRequest loginReq = HttpRequest.newBuilder()
+        HttpRequest loginRequest = HttpRequest.newBuilder()
                 .uri(loginUri)
                 .header("Content-Type", "application/x-www-form-urlencoded")
-                .POST(HttpRequest.BodyPublishers.ofString(form))
+                .POST(HttpRequest.BodyPublishers.ofString(formData))
                 .build();
 
-        HttpResponse<String> loginResp = client.send(loginReq, HttpResponse.BodyHandlers.ofString());
-        int statusLogin = loginResp.statusCode();
+        HttpResponse<String> loginResponse = client.send(loginRequest, HttpResponse.BodyHandlers.ofString());
+        return loginResponse.statusCode() == 200;
+    }
 
-        if (statusLogin == 200) {
-            HttpRequest downloadReq = HttpRequest.newBuilder()
-                    .uri(downloadUri)
-                    .GET()
-                    .build();
+    private void downloadAndSaveBackup(HttpClient client, String baseUrl, Path outputFile, String deviceIp)
+            throws IOException, InterruptedException {
+        URI downloadUri = URI.create(baseUrl + DOWNLOAD_QUERY);
 
-            HttpResponse<InputStream> downloadResp =
-                    client.send(downloadReq, HttpResponse.BodyHandlers.ofInputStream());
+        HttpRequest downloadRequest = HttpRequest.newBuilder()
+                .uri(downloadUri)
+                .GET()
+                .build();
 
-            int statusDownload = downloadResp.statusCode();
+        HttpResponse<InputStream> downloadResponse = client.send(downloadRequest, HttpResponse.BodyHandlers.ofInputStream());
 
-            if (statusDownload == 200) {
-                salvarArquivo(downloadResp.body(), arquivoSaida);
-            }
-
-            if (Files.exists(arquivoSaida) && Files.size(arquivoSaida) > 0) {
-                System.out.println("SUCCESS: " + device.getIp());
-            } else {
-                System.out.println("FAILURE: " + device.getIp() + " - Arquivo vazio ou falha no download.");
-                Files.deleteIfExists(arquivoSaida);
-            }
+        if (downloadResponse.statusCode() == 200) {
+            saveFile(downloadResponse.body(), outputFile);
+            validateAndLogResult(outputFile, deviceIp);
         } else {
-            System.out.println("FAILURE: " + device.getIp() + " - Status de login não foi 200 (retorno: " + statusLogin + ")");
+            logFailure(deviceIp, "Download failed - Status: " + downloadResponse.statusCode());
         }
     }
 
-    private void salvarArquivo(InputStream dados, Path destino) throws IOException {
+    private void validateAndLogResult(Path outputFile, String deviceIp) throws IOException {
+        if (Files.exists(outputFile) && Files.size(outputFile) > 0) {
+            logSuccess(deviceIp);
+        } else {
+            logFailure(deviceIp, "Empty file or download failed");
+            Files.deleteIfExists(outputFile);
+        }
+    }
+
+    private void saveFile(InputStream dados, Path destino) throws IOException {
         try (FileOutputStream out = new FileOutputStream(destino.toFile())) {
             dados.transferTo(out);
         }
     }
 
-    public String getPassword() {
-        return password;
+    // Responsibility: Log success
+    private void logSuccess(String deviceIp) {
+        System.out.println("SUCCESS: " + deviceIp);
     }
 
-    public void setPassword(String password) {
-        this.password =  password.replace("&", "%26");
+    // Responsibility: Log failure
+    private void logFailure(String deviceIp, String reason) {
+        System.out.println("FAILURE: " + deviceIp + " - " + reason);
+    }
+
+    public String setPassword(String password) {
+        return password.replace("&", "%26");
     }
 }
-

@@ -115,7 +115,7 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mimosa", "215");
 
-        MimosaTest mimosaHttpConnector = new MimosaTest("configure", password, "mimosa");
+        MimosaHttpConnector mimosaHttpConnector = new MimosaHttpConnector("configure", password, "mimosa");
         mimosaHttpConnector.backupDevices(listOfDevices);
     }
 
