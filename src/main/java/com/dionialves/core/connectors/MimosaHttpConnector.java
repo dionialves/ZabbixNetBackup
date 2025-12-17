@@ -1,6 +1,7 @@
 package com.dionialves.core.connectors;
 
 import com.dionialves.model.Device;
+import com.jcraft.jsch.JSchException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -15,16 +16,15 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-public class MimosaConnector {
+public class MimosaHttpConnector {
 
     private static final String USER = "configure";
-
     private String password;
 
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
 
-    public MimosaConnector(String password) {
+    public MimosaHttpConnector(String password) {
         this.setPassword(password);
     }
 

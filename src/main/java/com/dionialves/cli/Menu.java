@@ -85,7 +85,7 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mikrotik", "209");
 
-        MikrotikConnector mikrotikConnector = new MikrotikConnector(username, password);
+        MikrotikSshConnector mikrotikConnector = new MikrotikSshConnector(username, password);
         mikrotikConnector.backupDevices(listOfDevices);
     }
 
@@ -101,7 +101,7 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Ubiquiti", "214");
 
-        UbiquitiConnector ubiquitiConnector = new UbiquitiConnector(username, password);
+        UbiquitiSshConnector ubiquitiConnector = new UbiquitiSshConnector(username, password);
         ubiquitiConnector.backupDevices(listOfDevices);
     }
 
@@ -115,8 +115,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Mimosa", "215");
 
-        MimosaConnector mimosaConnector = new MimosaConnector(password);
-        mimosaConnector.backupOfListDevices(listOfDevices);
+        MimosaTest mimosaHttpConnector = new MimosaTest("configure", password, "mimosa");
+        mimosaHttpConnector.backupDevices(listOfDevices);
     }
 
     private void datacomProcess() throws Exception {
@@ -131,8 +131,8 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Datacom", "216");
 
-        DatacomConnector datacomConnector = new DatacomConnector(username, password);
-        datacomConnector.backupDevices(listOfDevices);
+        DatacomSshSshConnector datacomSshConnector = new DatacomSshSshConnector(username, password);
+        datacomSshConnector.backupDevices(listOfDevices);
     }
 
     private void ciscoProcess() throws Exception {
@@ -147,7 +147,7 @@ public class Menu {
 
         List<Device> listOfDevices = DeviceLoader.loadDevices("Cisco", "217");
 
-        CiscoConnector ciscoConnector = new CiscoConnector(username, password);
-        ciscoConnector.backupDevices(listOfDevices);
+        CiscoSshSshConnector ciscoSshConnector = new CiscoSshSshConnector(username, password);
+        ciscoSshConnector.backupDevices(listOfDevices);
     }
 }

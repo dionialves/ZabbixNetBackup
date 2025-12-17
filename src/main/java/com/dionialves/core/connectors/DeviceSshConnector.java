@@ -12,7 +12,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Properties;
 
-public abstract class DeviceConnector {
+public abstract class DeviceSshConnector {
     protected final String username;
     protected final String password;
     protected final String vendor;
@@ -20,11 +20,10 @@ public abstract class DeviceConnector {
 
     protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     protected static final int CONNECTION_TIMEOUT_MS = 10_000;
-    protected static final int CHANNEL_CONNECT_TIMEOUT_MS = 5_000;
     protected static final String BACKUP_FILE_EXTENSION = ".cfg";
 
 
-    public DeviceConnector(String username, String password, String vendor) {
+    public DeviceSshConnector(String username, String password, String vendor) {
         this.username = username;
         this.password = password;
         this.vendor = vendor;

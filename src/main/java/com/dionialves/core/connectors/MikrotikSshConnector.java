@@ -1,9 +1,9 @@
 package com.dionialves.core.connectors;
 
-public class MikrotikConnector extends DeviceConnector {
+public class MikrotikSshConnector extends DeviceSshConnector {
 
 
-    public MikrotikConnector(String username, String password) {
+    public MikrotikSshConnector(String username, String password) {
         super(username, password, "mikrotik");
         this.commandForBackup = "/export";
     }
