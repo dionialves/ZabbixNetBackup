@@ -32,7 +32,7 @@ public class Menu {
                 option = -1;
             }
 
-        } while (option != 6);
+        } while (option != 7);
         scanner.close();
     }
 
@@ -44,7 +44,8 @@ public class Menu {
         System.out.println("3 - Backup de Equipamentos Mimosa");
         System.out.println("4 - Backup de Equipamentos Datacom");
         System.out.println("5 - Backup de Equipamentos Cisco");
-        System.out.println("6 - Sair");
+        System.out.println("6 - Backup de Equipamentos Digistar");
+        System.out.println("7 - Sair");
         System.out.println("------------------------------------");
     }
 
@@ -66,6 +67,9 @@ public class Menu {
                 this.ciscoProcess();
                 break;
             case 6:
+                this.digistarProcess();
+                break;
+            case 7:
                 System.out.println("\n👋 Saindo do programa.");
                 break;
             default:
@@ -149,5 +153,21 @@ public class Menu {
 
         CiscoSshSshConnector ciscoSshConnector = new CiscoSshSshConnector(username, password);
         ciscoSshConnector.backupDevices(listOfDevices);
+    }
+
+    private void digistarProcess() throws Exception {
+        System.out.println("\nIniciando o processo de backup para Equipamentos Digistar...");
+
+        Scanner scanner = new Scanner(System.in);
+        System.out.print("Digite o login do equipamento: ");
+        String username = scanner.nextLine();
+
+        System.out.print("Digite a senha do equipamento: ");
+        String password = scanner.nextLine();
+
+        List<Device> listOfDevices = DeviceLoader.loadDevices("Digistar", "218");
+
+        DigistarSshConnector digistarSshConnector = new DigistarSshConnector(username, password, "Digistar");
+        digistarSshConnector.backupDevices(listOfDevices);
     }
 }

@@ -20,13 +20,14 @@ public abstract class DeviceSshConnector {
 
     protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     protected static final int CONNECTION_TIMEOUT_MS = 10_000;
-    protected static final String BACKUP_FILE_EXTENSION = ".cfg";
-
+    protected String backupFileExtension;
 
     public DeviceSshConnector(String username, String password, String vendor) {
         this.username = username;
         this.password = password;
         this.vendor = vendor;
+
+        this.backupFileExtension = ".cfg";
     }
 
     public void backupDevices(List<Device> devices) throws JSchException, IOException {
@@ -53,7 +54,7 @@ public abstract class DeviceSshConnector {
     }
 
     protected void backupDevice(Device device, String backupDir) throws JSchException {
-        String filename = device.getIp() + BACKUP_FILE_EXTENSION;
+        String filename = device.getIp() + backupFileExtension;
         String filePath = backupDir + "/" + filename;
 
         try {
@@ -64,7 +65,7 @@ public abstract class DeviceSshConnector {
                 return;
             }
 
-            String config = fetchRunningConfig(session);
+            String config = readDeviceConfiguration(session);
             writeConfigToFile(config, filePath);
 
             System.out.println("SUCCESS: " + device.getIp());
@@ -74,7 +75,7 @@ public abstract class DeviceSshConnector {
         }
     }
 
-    private Session connect(Device device) throws JSchException {
+    protected Session connect(Device device) throws JSchException {
         JSch jsch = new JSch();
         Session session = jsch.getSession(username, device.getIp(), device.getPort());
         session.setPassword(password);
@@ -96,7 +97,7 @@ public abstract class DeviceSshConnector {
         return new Properties();
     }
 
-    protected String fetchRunningConfig(Session session) throws JSchException, IOException {
+    protected String readDeviceConfiguration(Session session) throws JSchException, IOException {
         ChannelExec channel = null;
         try {
             channel = (ChannelExec) session.openChannel("exec");
@@ -108,6 +109,59 @@ public abstract class DeviceSshConnector {
 
             return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
 
+        } finally {
+            if (channel != null && channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    protected void executeCommand(Session session, String command) throws JSchException, IOException {
+        ChannelExec channel = null;
+        try {
+            channel = (ChannelExec) session.openChannel("exec");
+
+            channel.setCommand(command);
+            channel.setInputStream(null);
+            channel.setErrStream(System.err);
+
+            channel.connect();
+
+        } finally {
+            if (channel != null && channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    protected void executeInteractiveCommands(Session session, List<String> commands) throws JSchException, IOException {
+        ChannelShell channel = null;
+        try {
+            channel = (ChannelShell) session.openChannel("shell");
+
+            InputStream input = channel.getInputStream();
+            OutputStream output = channel.getOutputStream();
+
+            channel.connect();
+
+            for (String cmd : commands) {
+                output.write((cmd + "\n").getBytes(StandardCharsets.UTF_8));
+                output.flush();
+
+                // Pequena espera para o equipamento responder
+                Thread.sleep(500);
+            }
+
+            // Opcional: ler saída
+            byte[] buffer = new byte[4096];
+            while (input.available() > 0) {
+                int bytesRead = input.read(buffer);
+                if (bytesRead < 0) break;
+                System.out.print(new String(buffer, 0, bytesRead));
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
         } finally {
             if (channel != null && channel.isConnected()) {
                 channel.disconnect();
