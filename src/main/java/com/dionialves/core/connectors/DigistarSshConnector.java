@@ -1,6 +1,5 @@
 package com.dionialves.core.connectors;
 
-import com.dionialves.model.Device;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -13,33 +12,33 @@ import java.time.LocalDate;
 public class DigistarSshConnector extends DeviceSshConnector {
     private final String tftpUrl;
 
-    public DigistarSshConnector(String username, String password, String tftpUrl) {
-        super(username, password, "digistar");
+    public DigistarSshConnector(String username, String password, int sshPort, String tftpUrl) {
+        super(username, password, sshPort, "digistar");
 
         this.backupFileExtension = ".tar";
         this.tftpUrl = tftpUrl;
     }
 
     @Override
-    protected void backupDevice(Device device, String backupDir) throws JSchException {
+    protected void backupDevice(String ip, String backupDir) throws JSchException {
         String data = LocalDate.now().format(DATE_FORMATTER);
-        String filename = device.getIp() + "_" + data + backupFileExtension;
+        String filename = ip + "_" + data + backupFileExtension;
 
         Session session = null;
         try {
-            session = this.connect(device);
+            session = this.connect(ip);
 
             if (!session.isConnected()) {
-                System.out.println("FAILURE: " + device.getIp() + " - Session could not be established.");
+                System.out.println("FAILURE: " + ip + " - Session could not be established.");
                 return;
             }
 
             this.executeBackupViaTftp(session, filename);
 
-            System.out.println("SUCCESS: " + device.getIp());
+            System.out.println("SUCCESS: " + ip);
         }
         catch (IOException e) {
-            System.out.println("FAILURE: " + device.getIp() + " - " + e.getMessage());
+            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
         }
         finally {
             if (session != null && session.isConnected()) {

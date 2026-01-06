@@ -1,12 +1,12 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.CiscoSshSshConnector;
-import com.dionialves.core.service.DeviceLoader;
-import com.dionialves.model.Device;
+import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.util.List;
+import java.util.Map;
 
 @Command(
         name = "cisco",
@@ -43,21 +43,17 @@ public class CiscoBackupCommand implements Runnable {
     )
     private String password;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "Enable verbose output"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
 
-        List<Device> listOfDevices = null;
-
         try {
-            listOfDevices = DeviceLoader.loadDevices("Cisco", groupId, sshPort);
-            CiscoSshSshConnector ciscoConnector = new CiscoSshSshConnector(username, password);
-            ciscoConnector.backupDevices(listOfDevices);
+
+            ZabbixClient zabbix = new ZabbixClient();
+            zabbix.login();
+            List<Map<String, String>> hosts = zabbix.getHostsFromGroup(groupId);
+
+            CiscoSshSshConnector ciscoConnector = new CiscoSshSshConnector(username, password, sshPort);
+            ciscoConnector.backupDevices(hosts);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

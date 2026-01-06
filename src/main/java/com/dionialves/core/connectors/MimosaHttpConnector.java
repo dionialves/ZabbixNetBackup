@@ -1,7 +1,5 @@
 package com.dionialves.core.connectors;
 
-import com.dionialves.model.Device;
-
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,28 +15,31 @@ import java.nio.file.Path;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 
 public class MimosaHttpConnector {
     private final String username;
     private final String password;
+    private final int port;
     private final String vendor;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
 
-    public MimosaHttpConnector(String password) {
+    public MimosaHttpConnector(String password, int port) {
         this.password = setPassword(password);
+        this.port = port;
         this.username = "configure";
         this.vendor = "mimosa";
     }
 
-    public void backupDevices(List<Device> devices) throws IOException, InterruptedException {
+    public void backupDevices(List<Map<String, String>> devices) throws IOException, InterruptedException {
 
         Path backupDir = this.createBackupDirectory(this.vendor);
 
-        for (Device device : devices) {
-            this.backupDevice(device, backupDir);
+        for (Map<String, String> device : devices) {
+            this.backupDevice(device.get("ip"), backupDir);
         }
     }
 
@@ -61,16 +62,16 @@ public class MimosaHttpConnector {
         return todayDir;
     }
 
-    private void backupDevice(Device device, Path backupFolder) throws IOException, InterruptedException {
-        Path outputFile = backupFolder.resolve(device.getIp() + ".conf");
+    private void backupDevice(String ip, Path backupFolder) throws IOException, InterruptedException {
+        Path outputFile = backupFolder.resolve(ip + ".conf");
 
         HttpClient client = createHttpClient();
-        String baseUrl = "http://" + device.getIp() + ":" + device.getPort();
+        String baseUrl = "http://" + ip + ":" + this.port;
 
         if (authenticate(client, baseUrl)) {
-            downloadAndSaveBackup(client, baseUrl, outputFile, device.getIp());
+            downloadAndSaveBackup(client, baseUrl, outputFile, ip);
         } else {
-            logFailure(device.getIp(), "Authentication failed");
+            logFailure(ip, "Authentication failed");
         }
     }
 

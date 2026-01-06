@@ -1,6 +1,7 @@
 package com.dionialves;
 
 import com.dionialves.cli.BackupCommand;
+import com.dionialves.cli.InitCommand;
 import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
@@ -10,7 +11,8 @@ import picocli.CommandLine.Command;
         version = "znb 0.0.1",
         description = "Network device backup tool powered by Zabbix",
         subcommands = {
-                BackupCommand.class
+                BackupCommand.class,
+                InitCommand.class
         }
 )
 

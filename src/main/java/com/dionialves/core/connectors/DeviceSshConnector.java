@@ -1,6 +1,5 @@
 package com.dionialves.core.connectors;
 
-import com.dionialves.model.Device;
 import com.jcraft.jsch.*;
 
 import java.io.*;
@@ -10,32 +9,35 @@ import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 public abstract class DeviceSshConnector {
     protected final String username;
     protected final String password;
     protected final String vendor;
+    protected final int port;
     protected String commandForBackup;
 
     protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     protected static final int CONNECTION_TIMEOUT_MS = 10_000;
     protected String backupFileExtension;
 
-    public DeviceSshConnector(String username, String password, String vendor) {
+    public DeviceSshConnector(String username, String password, int port, String vendor) {
         this.username = username;
         this.password = password;
         this.vendor = vendor;
+        this.port = port;
 
         this.backupFileExtension = ".cfg";
     }
 
-    public void backupDevices(List<Device> devices) throws JSchException, IOException {
+    public void backupDevices(List<Map<String, String>> devices) throws JSchException, IOException {
 
         String backupDir = this.createBackupDirectory(this.vendor);
 
-        for (Device device : devices) {
-            this.backupDevice(device, backupDir);
+        for (Map<String, String> device : devices) {
+            this.backupDevice(device.get("ip"), backupDir);
         }
     }
 
@@ -53,31 +55,31 @@ public abstract class DeviceSshConnector {
         return todayDir;
     }
 
-    protected void backupDevice(Device device, String backupDir) throws JSchException {
-        String filename = device.getIp() + backupFileExtension;
+    protected void backupDevice(String ip, String backupDir) throws JSchException {
+        String filename = ip + backupFileExtension;
         String filePath = backupDir + "/" + filename;
 
         try {
-            Session session = this.connect(device);
+            Session session = this.connect(ip);
 
             if (!session.isConnected()) {
-                System.out.println("FAILURE: " + device.getIp() + " - Session could not be established.");
+                System.out.println("FAILURE: " + ip + " - Session could not be established.");
                 return;
             }
 
             String config = readDeviceConfiguration(session);
             writeConfigToFile(config, filePath);
 
-            System.out.println("SUCCESS: " + device.getIp());
+            System.out.println("SUCCESS: " + ip);
         }
         catch (IOException e) {
-            System.out.println("FAILURE: " + device.getIp() + " - " + e.getMessage());
+            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
         }
     }
 
-    protected Session connect(Device device) throws JSchException {
+    protected Session connect(String ip) throws JSchException {
         JSch jsch = new JSch();
-        Session session = jsch.getSession(username, device.getIp(), device.getPort());
+        Session session = jsch.getSession(username, ip, this.port);
         session.setPassword(password);
 
         session.setConfig("StrictHostKeyChecking", "no");
@@ -86,7 +88,7 @@ public abstract class DeviceSshConnector {
         try {
             session.connect(CONNECTION_TIMEOUT_MS);
         } catch (JSchException e) {
-            System.out.println("FAILURE: " + device.getIp() + " - " + e.getMessage());
+            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
             session.disconnect();
         }
 

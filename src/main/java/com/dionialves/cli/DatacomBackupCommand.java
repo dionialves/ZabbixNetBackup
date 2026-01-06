@@ -1,12 +1,12 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.connectors.DatacomSshSshConnector;
-import com.dionialves.core.service.DeviceLoader;
-import com.dionialves.model.Device;
+import com.dionialves.core.connectors.DatacomSshConnector;
+import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.util.List;
+import java.util.Map;
 
 @Command(
         name = "datacom",
@@ -43,20 +43,15 @@ public class DatacomBackupCommand implements Runnable {
     )
     private String password;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "Enable verbose output"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
-
-        List<Device> listOfDevices = null;
         try {
-            listOfDevices = DeviceLoader.loadDevices("Datacom", groupId, sshPort);
-            DatacomSshSshConnector datacomConnector = new DatacomSshSshConnector(username, password);
-            datacomConnector.backupDevices(listOfDevices);
+            ZabbixClient zabbix = new ZabbixClient();
+            zabbix.login();
+            List<Map<String, String>> hosts = zabbix.getHostsFromGroup(groupId);
+
+            DatacomSshConnector datacomConnector = new DatacomSshConnector(username, password, sshPort);
+            datacomConnector.backupDevices(hosts);
 
         } catch (Exception e) {
             throw new RuntimeException(e);

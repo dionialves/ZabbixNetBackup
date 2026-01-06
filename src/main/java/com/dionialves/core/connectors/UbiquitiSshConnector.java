@@ -4,8 +4,8 @@ import java.util.Properties;
 
 public class UbiquitiSshConnector extends DeviceSshConnector {
 
-    public UbiquitiSshConnector(String username, String password) {
-        super(username, password, "ubiquiti");
+    public UbiquitiSshConnector(String username, String password, int sshPort) {
+        super(username, password, sshPort, "ubiquiti");
         this.commandForBackup = "cat /tmp/system.cfg";
     }
 

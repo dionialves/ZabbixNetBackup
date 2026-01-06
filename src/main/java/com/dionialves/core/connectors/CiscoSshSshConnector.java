@@ -4,8 +4,8 @@ import java.util.Properties;
 
 public class CiscoSshSshConnector extends DeviceSshConnector {
 
-    public CiscoSshSshConnector(String username, String password) {
-        super(username, password, "cisco");
+    public CiscoSshSshConnector(String username, String password, int sshPort) {
+        super(username, password, sshPort, "cisco");
         this.commandForBackup = "show running-config";
     }
 

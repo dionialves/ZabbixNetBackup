@@ -1,12 +1,12 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.MikrotikSshConnector;
-import com.dionialves.core.service.DeviceLoader;
-import com.dionialves.model.Device;
+import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
 import java.util.List;
+import java.util.Map;
 
 @Command(
         name = "mikrotik",
@@ -43,27 +43,15 @@ public class MikrotikBackupCommand implements Runnable {
     )
     private String password;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "Enable verbose output"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
-
-        if (verbose) {
-            System.out.println("Starting Mikrotik backup...");
-            System.out.println("Group ID      : " + groupId);
-
-        }
-
-        List<Device> listOfDevices = null;
-
         try {
-            listOfDevices = DeviceLoader.loadDevices("Mikrotik", groupId, sshPort);
-            MikrotikSshConnector mikrotikConnector = new MikrotikSshConnector(username, password);
-            mikrotikConnector.backupDevices(listOfDevices);
+            ZabbixClient zabbix = new ZabbixClient();
+            zabbix.login();
+            List<Map<String, String>> hosts = zabbix.getHostsFromGroup(groupId);
+
+            MikrotikSshConnector mikrotikConnector = new MikrotikSshConnector(username, password, sshPort);
+            mikrotikConnector.backupDevices(hosts);
 
         } catch (Exception e) {
             throw new RuntimeException(e);
