@@ -10,17 +10,12 @@ import com.dionialves.model.Device;
 
 public class DeviceLoader {
 
-    public static List<Device> loadDevices(String manufacturer, String groupId) throws Exception {
+    public static List<Device> loadDevices(String manufacturer, String groupId, int port) throws Exception {
         ZabbixClient zabbixApi = new ZabbixClient();
         zabbixApi.login();
 
         List<Map<String, String>> hostsList = zabbixApi.getHostsFromGroup(groupId);
         List<Device> listOfDevices = new ArrayList<>();
-
-        int port = 22;
-        if (Objects.equals(manufacturer, "Mikrotik")) {
-            port = 2300;
-        }
 
         for (Map<String, String> host : hostsList) {
 
@@ -32,7 +27,11 @@ public class DeviceLoader {
 
         }
 
-        System.out.println("\nLeitura de arquivo concluída. " + listOfDevices.size() + " equipamentos do tipo " + manufacturer + " carregados.");
+        System.out.println("\nZabbix data reading completed. "
+                + listOfDevices.size()
+                + " devices from manufacturer "
+                + manufacturer
+                + " loaded.");
 
         return listOfDevices;
     }

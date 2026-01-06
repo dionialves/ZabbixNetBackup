@@ -4,7 +4,6 @@ import com.dionialves.model.Device;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
-import io.github.cdimascio.dotenv.Dotenv;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,13 +13,11 @@ import java.time.LocalDate;
 public class DigistarSshConnector extends DeviceSshConnector {
     private final String tftpUrl;
 
-    public DigistarSshConnector(String username, String password, String vendor) {
-        super(username, password, vendor);
+    public DigistarSshConnector(String username, String password, String tftpUrl) {
+        super(username, password, "digistar");
 
         this.backupFileExtension = ".tar";
-
-        Dotenv dotenv = Dotenv.load();
-        this.tftpUrl = dotenv.get("TFTP_SERVER");
+        this.tftpUrl = tftpUrl;
     }
 
     @Override

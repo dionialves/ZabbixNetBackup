@@ -19,19 +19,18 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 public class MimosaHttpConnector {
-    private final String user;
+    private final String username;
     private final String password;
     private final String vendor;
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
-    private static final String BACKUP_FILE_EXTENSION = ".cfg";
 
-    public MimosaHttpConnector(String user, String password, String vendor) {
+    public MimosaHttpConnector(String password) {
         this.password = setPassword(password);
-        this.user = user;
-        this.vendor = vendor;
+        this.username = "configure";
+        this.vendor = "mimosa";
     }
 
     public void backupDevices(List<Device> devices) throws IOException, InterruptedException {
@@ -66,7 +65,7 @@ public class MimosaHttpConnector {
         Path outputFile = backupFolder.resolve(device.getIp() + ".conf");
 
         HttpClient client = createHttpClient();
-        String baseUrl = "http://" + device.getIp();
+        String baseUrl = "http://" + device.getIp() + ":" + device.getPort();
 
         if (authenticate(client, baseUrl)) {
             downloadAndSaveBackup(client, baseUrl, outputFile, device.getIp());
@@ -86,7 +85,7 @@ public class MimosaHttpConnector {
 
     private boolean authenticate(HttpClient client, String baseUrl) throws IOException, InterruptedException {
         URI loginUri = URI.create(baseUrl + LOGIN_PATH);
-        String formData = "username=" + this.user + "&password=" + this.password;
+        String formData = "username=" + this.username + "&password=" + this.password;
 
         HttpRequest loginRequest = HttpRequest.newBuilder()
                 .uri(loginUri)
