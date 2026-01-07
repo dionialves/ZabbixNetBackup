@@ -51,13 +51,6 @@ public class UbiquitiBackupCommand implements Runnable {
     )
     private boolean verbose;
 
-    @Option(
-            names = {"--log-file"},
-            description = "Save detailed log to file"
-    )
-    private String logFile;
-
-
     @Override
     public void run() {
 
@@ -77,20 +70,11 @@ public class UbiquitiBackupCommand implements Runnable {
             BackupSummary summary = backupService.backupDevices(hosts);
             summary.print();
 
-            if (logFile != null) {
-                saveLogToFile(summary, logFile);
-            }
-
         } catch (ZnbConfigException e) {
             System.err.println("Erro: " + e.getMessage());
             System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
             System.err.println("\nUnexpected error: " + e.getMessage());
         }
-    }
-
-    private void saveLogToFile(BackupSummary summary, String logFile) {
-        // TODO: Implementar salvamento de log em arquivo
-        System.out.println("\nLog salvo em: " + logFile);
     }
 }
