@@ -1,6 +1,7 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.CiscoSshSshConnector;
+import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -55,11 +56,12 @@ public class CiscoBackupCommand implements Runnable {
             CiscoSshSshConnector ciscoConnector = new CiscoSshSshConnector(username, password, sshPort);
             ciscoConnector.backupDevices(hosts);
 
+            System.out.println("Backup routine completed");
+        } catch (ZnbConfigException e) {
+            System.err.println("Erro: " + e.getMessage());
+            System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
-            throw new RuntimeException(e);
-
-        } finally {
-            System.out.println("Cisco backup completed successfully.");
+            System.err.println("\nUnexpected error: " + e.getMessage());
         }
     }
 }

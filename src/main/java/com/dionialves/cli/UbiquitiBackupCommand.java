@@ -1,6 +1,7 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.UbiquitiSshConnector;
+import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -53,11 +54,12 @@ public class UbiquitiBackupCommand implements Runnable {
             UbiquitiSshConnector ubiquitiConnector = new UbiquitiSshConnector(username, password, sshPort);
             ubiquitiConnector.backupDevices(hosts);
 
+            System.out.println("Backup routine completed");
+        } catch (ZnbConfigException e) {
+            System.err.println("Erro: " + e.getMessage());
+            System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
-            throw new RuntimeException(e);
-
-        } finally {
-            System.out.println("Ubiquiti backup completed successfully.");
+            System.err.println("\nUnexpected error: " + e.getMessage());
         }
     }
 }

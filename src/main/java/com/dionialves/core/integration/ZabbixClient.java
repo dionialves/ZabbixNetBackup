@@ -50,7 +50,32 @@ public class ZabbixClient {
             );
         }
 
+        this.validateRequiredProperties(props);
         return props;
+    }
+
+    private void validateRequiredProperties(Properties props) {
+        String[] requiredKeys = {
+                "ZABBIX_URL",
+                "ZABBIX_USERNAME",
+                "ZABBIX_PASSWORD"
+        };
+
+        List<String> missingKeys = new ArrayList<>();
+
+        for (String key : requiredKeys) {
+            String value = props.getProperty(key);
+            if (value == null || value.trim().isEmpty()) {
+                missingKeys.add(key);
+            }
+        }
+
+        if (!missingKeys.isEmpty()) {
+            throw new ZnbConfigException(
+                    "Incomplete configuration. Missing properties: " +
+                            String.join(", ", missingKeys)
+            );
+        }
     }
 
     private String getRequired(Properties props, String key) {

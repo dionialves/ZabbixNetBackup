@@ -1,6 +1,7 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.DigistarSshConnector;
+import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -60,11 +61,12 @@ public class DigistarBackupCommand implements Runnable {
             DigistarSshConnector digistarConnector = new DigistarSshConnector(username, password, sshPort, tftpUrl);
             digistarConnector.backupDevices(hosts);
 
+            System.out.println("Backup routine completed");
+        } catch (ZnbConfigException e) {
+            System.err.println("Erro: " + e.getMessage());
+            System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
-            throw new RuntimeException(e);
-
-        } finally {
-            System.out.println("Datacom backup completed successfully.");
+            System.err.println("\nUnexpected error: " + e.getMessage());
         }
     }
 }

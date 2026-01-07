@@ -1,6 +1,7 @@
 package com.dionialves.cli;
 
 import com.dionialves.core.connectors.MikrotikSshConnector;
+import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -53,10 +54,12 @@ public class MikrotikBackupCommand implements Runnable {
             MikrotikSshConnector mikrotikConnector = new MikrotikSshConnector(username, password, sshPort);
             mikrotikConnector.backupDevices(hosts);
 
+            System.out.println("Backup routine completed");
+        } catch (ZnbConfigException e) {
+            System.err.println("Erro: " + e.getMessage());
+            System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
-            throw new RuntimeException(e);
-        } finally {
-            System.out.println("Mikrotik backup completed successfully.");
+            System.err.println("\nUnexpected error: " + e.getMessage());
         }
     }
 }
