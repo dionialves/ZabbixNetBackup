@@ -1,8 +1,8 @@
 package com.dionialves.core.connectors;
 
-public class DatacomSshConnector extends DeviceSshConnector {
+public class DatacomService extends DeviceService {
 
-    public DatacomSshConnector(String username, String password, int sshPort) {
+    public DatacomService(String username, String password, int sshPort) {
         super(username, password, sshPort, "datacom");
         this.commandForBackup = "show running-config | nomore";
     }

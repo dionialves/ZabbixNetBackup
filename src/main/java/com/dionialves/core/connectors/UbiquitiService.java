@@ -2,11 +2,11 @@ package com.dionialves.core.connectors;
 
 import java.util.Properties;
 
-public class CiscoSshSshConnector extends DeviceSshConnector {
+public class UbiquitiService extends DeviceService {
 
-    public CiscoSshSshConnector(String username, String password, int sshPort) {
-        super(username, password, sshPort, "cisco");
-        this.commandForBackup = "show running-config";
+    public UbiquitiService(String username, String password, int sshPort) {
+        super(username, password, sshPort, "ubiquiti");
+        this.commandForBackup = "cat /tmp/system.cfg";
     }
 
     @Override
@@ -20,3 +20,4 @@ public class CiscoSshSshConnector extends DeviceSshConnector {
         return config;
     }
 }
+

@@ -1,5 +1,11 @@
 package com.dionialves.core.connectors;
 
+import com.dionialves.core.util.ProgressBar;
+import com.dionialves.model.BackupResult;
+import com.dionialves.model.BackupSummary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -17,30 +23,62 @@ import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
 
-public class MimosaHttpConnector {
+public class MimosaService {
+    private static final Logger logger = LoggerFactory.getLogger(MimosaService.class);
+
     private final String username;
     private final String password;
     private final int port;
     private final String vendor;
+    private boolean verbose = false;
+
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String LOGIN_PATH = "/login.php";
     private static final String DOWNLOAD_QUERY = "?q=preferences.configure&mimosa_action=download";
 
-    public MimosaHttpConnector(String password, int port) {
+    public MimosaService(String password, int port) {
         this.password = setPassword(password);
         this.port = port;
         this.username = "configure";
         this.vendor = "mimosa";
     }
 
-    public void backupDevices(List<Map<String, String>> devices) throws IOException, InterruptedException {
+    public BackupSummary backupDevices(List<Map<String, String>> devices) throws IOException, InterruptedException {
 
+        BackupSummary summary = new BackupSummary();
         Path backupDir = this.createBackupDirectory(this.vendor);
 
-        for (Map<String, String> device : devices) {
-            this.backupDevice(device.get("ip"), backupDir);
+        if (verbose) {
+            System.out.println("Iniciando backup de " + devices.size() + " dispositivos Mimosa...\n");
         }
+
+        ProgressBar progressBar = null;
+        if (!verbose) {
+            progressBar = new ProgressBar("Backup Mimosa", devices.size());
+        }
+
+        for (Map<String, String> device : devices) {
+            String ip = device.get("ip");
+
+            BackupResult result = this.backupDevice(ip, backupDir);
+            summary.add(result);
+
+            if (verbose) {
+                System.out.println(result.toString());
+            } else if (progressBar != null) {
+                progressBar.setExtraMessage(ip);
+                progressBar.step();
+            }
+
+        }
+        if (progressBar != null) {
+            progressBar.close();
+        }
+
+        summary.finish();
+        return summary;
+
     }
 
     private Path createBackupDirectory(String vendor) {
@@ -62,16 +100,45 @@ public class MimosaHttpConnector {
         return todayDir;
     }
 
-    private void backupDevice(String ip, Path backupFolder) throws IOException, InterruptedException {
+    private BackupResult backupDevice(String ip, Path backupFolder) throws IOException, InterruptedException {
         Path outputFile = backupFolder.resolve(ip + ".conf");
 
-        HttpClient client = createHttpClient();
-        String baseUrl = "http://" + ip + ":" + this.port;
+        try {
+            HttpClient client = createHttpClient();
+            String baseUrl = "http://" + ip + ":" + this.port;
 
-        if (authenticate(client, baseUrl)) {
-            downloadAndSaveBackup(client, baseUrl, outputFile, ip);
-        } else {
-            logFailure(ip, "Authentication failed");
+            if (authenticate(client, baseUrl)) {
+                downloadAndSaveBackup(client, baseUrl, outputFile, ip);
+
+                // Validar se o arquivo foi salvo corretamente
+                if (Files.exists(outputFile) && Files.size(outputFile) > 0) {
+                    logger.debug("Backup realizado com sucesso: {}", ip);
+                    return BackupResult.success(ip);
+                } else {
+                    String errorMsg = "Arquivo vazio ou download falhou";
+                    logger.warn("Falha no backup de {}: {}", ip, errorMsg);
+                    Files.deleteIfExists(outputFile);
+                    return BackupResult.failure(ip, errorMsg);
+                }
+            } else {
+                String errorMsg = "Falha na autenticação";
+                logger.warn("Falha ao autenticar em {}", ip);
+                return BackupResult.failure(ip, errorMsg);
+            }
+
+        } catch (IOException e) {
+            String errorMsg = "Erro de I/O: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
+        } catch (InterruptedException e) {
+            String errorMsg = "Operação interrompida: " + e.getMessage();
+            logger.error("Backup interrompido para {}: {}", ip, errorMsg);
+            Thread.currentThread().interrupt();
+            return BackupResult.failure(ip, errorMsg);
+        } catch (Exception e) {
+            String errorMsg = "Erro inesperado: " + e.getMessage();
+            logger.error("Erro inesperado ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
     }
 
@@ -111,18 +178,8 @@ public class MimosaHttpConnector {
 
         if (downloadResponse.statusCode() == 200) {
             saveFile(downloadResponse.body(), outputFile);
-            validateAndLogResult(outputFile, deviceIp);
         } else {
-            logFailure(deviceIp, "Download failed - Status: " + downloadResponse.statusCode());
-        }
-    }
-
-    private void validateAndLogResult(Path outputFile, String deviceIp) throws IOException {
-        if (Files.exists(outputFile) && Files.size(outputFile) > 0) {
-            logSuccess(deviceIp);
-        } else {
-            logFailure(deviceIp, "Empty file or download failed");
-            Files.deleteIfExists(outputFile);
+            throw new IOException("Download failed - Status: " + downloadResponse.statusCode());
         }
     }
 
@@ -132,17 +189,11 @@ public class MimosaHttpConnector {
         }
     }
 
-    // Responsibility: Log success
-    private void logSuccess(String deviceIp) {
-        System.out.println("SUCCESS: " + deviceIp);
-    }
-
-    // Responsibility: Log failure
-    private void logFailure(String deviceIp, String reason) {
-        System.out.println("FAILURE: " + deviceIp + " - " + reason);
-    }
-
     public String setPassword(String password) {
         return password.replace("&", "%26");
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 }

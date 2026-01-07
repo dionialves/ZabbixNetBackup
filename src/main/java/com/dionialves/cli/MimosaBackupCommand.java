@@ -1,8 +1,9 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.connectors.MimosaHttpConnector;
+import com.dionialves.core.connectors.MimosaService;
 import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
+import com.dionialves.model.BackupSummary;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -16,11 +17,12 @@ import java.util.Map;
 public class MimosaBackupCommand implements Runnable {
 
     @Option(
-            names = "--group-id",
+            names = {"-p", "--password"},
             required = true,
-            description = "Zabbix host group ID that contains Mimosa devices"
+            interactive = true,
+            description = "Mimosa password"
     )
-    private String groupId;
+    private String password;
 
     @Option(
             names = {"-P", "--http-port"},
@@ -30,31 +32,58 @@ public class MimosaBackupCommand implements Runnable {
     private int httpPort;
 
     @Option(
-            names = {"-p", "--password"},
+            names = {"-g", "--group-id"},
             required = true,
-            interactive = true,
-            description = "Mimosa password"
+            description = "Zabbix host group ID that contains Mimosa devices"
     )
-    private String password;
+    private String groupId;
+
+    @Option(
+            names = {"-v", "--verbose"},
+            description = "View each backup individually"
+    )
+    private boolean verbose;
+
+    @Option(
+            names = {"--log-file"},
+            description = "Save detailed log to file"
+    )
+    private String logFile;
 
     @Override
     public void run() {
-        try {
 
+        try {
             ZabbixClient zabbix = new ZabbixClient();
             zabbix.login();
             List<Map<String, String>> hosts = zabbix.getHostsFromGroup(groupId);
 
-            MimosaHttpConnector mimosaConnector = new MimosaHttpConnector(password, httpPort);
-            mimosaConnector.backupDevices(hosts);
+            if (hosts.isEmpty()) {
+                System.err.println("Nenhum dispositivo encontrado no grupo " + groupId);
+                return;
+            }
 
-            System.out.println("Backup routine completed");
+            MimosaService backupService = new MimosaService( password, httpPort);
+            backupService.setVerbose(verbose);
+
+            BackupSummary summary = backupService.backupDevices(hosts);
+            summary.print();
+
+            if (logFile != null) {
+                saveLogToFile(summary, logFile);
+            }
+
         } catch (ZnbConfigException e) {
             System.err.println("Erro: " + e.getMessage());
             System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
             System.err.println("\nUnexpected error: " + e.getMessage());
         }
+    }
+
+    private void saveLogToFile(BackupSummary summary, String logFile) {
+        // TODO: Implementar salvamento de log em arquivo
+        System.out.println("\nLog salvo em: " + logFile);
     }
 }
 

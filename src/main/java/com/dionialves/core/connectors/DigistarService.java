@@ -1,5 +1,6 @@
 package com.dionialves.core.connectors;
 
+import com.dionialves.model.BackupResult;
 import com.jcraft.jsch.ChannelShell;
 import com.jcraft.jsch.JSchException;
 import com.jcraft.jsch.Session;
@@ -9,10 +10,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.time.LocalDate;
 
-public class DigistarSshConnector extends DeviceSshConnector {
+public class DigistarService extends DeviceService {
     private final String tftpUrl;
 
-    public DigistarSshConnector(String username, String password, int sshPort, String tftpUrl) {
+    public DigistarService(String username, String password, int sshPort, String tftpUrl) {
         super(username, password, sshPort, "digistar");
 
         this.backupFileExtension = ".tar";
@@ -20,30 +21,37 @@ public class DigistarSshConnector extends DeviceSshConnector {
     }
 
     @Override
-    protected void backupDevice(String ip, String backupDir) throws JSchException {
+    protected BackupResult backupDevice(String ip, String backupDir) throws JSchException {
+
         String data = LocalDate.now().format(DATE_FORMATTER);
         String filename = ip + "_" + data + backupFileExtension;
 
-        Session session = null;
         try {
-            session = this.connect(ip);
+            Session session = this.connect(ip);
 
             if (!session.isConnected()) {
-                System.out.println("FAILURE: " + ip + " - Session could not be established.");
-                return;
+                String errorMsg = "Sessão não estabelecida";
+                logger.warn("Falha ao conectar em {}: {}", ip, errorMsg);
+                return BackupResult.failure(ip, errorMsg);
             }
 
             this.executeBackupViaTftp(session, filename);
-
-            System.out.println("SUCCESS: " + ip);
+            return BackupResult.success(ip);
+        }
+        catch (JSchException e) {
+            String errorMsg = "Erro de conexão SSH: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
         catch (IOException e) {
-            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
+            String errorMsg = "Erro de I/O: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
-        finally {
-            if (session != null && session.isConnected()) {
-                session.disconnect();
-            }
+        catch (Exception e) {
+            String errorMsg = "Erro inesperado: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
     }
 

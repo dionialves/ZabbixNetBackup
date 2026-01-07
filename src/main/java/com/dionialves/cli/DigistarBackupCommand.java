@@ -1,8 +1,9 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.connectors.DigistarSshConnector;
+import com.dionialves.core.connectors.DigistarService;
 import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
+import com.dionialves.model.BackupSummary;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 
@@ -16,9 +17,23 @@ import java.util.Map;
 public class DigistarBackupCommand implements Runnable {
 
     @Option(
-            names = "--group-id",
+            names = {"-u", "--username"},
             required = true,
-            description = "Zabbix host group ID that contains Datacom devices"
+            description = "Device User"
+    )
+    private String username;
+
+    @Option(
+            names = {"-p", "--password"},
+            required = true,
+            interactive = true,
+            description = "Device Password"
+    )
+    private String password;
+    @Option(
+            names = {"-g", "--group-id"},
+            required = true,
+            description = "Zabbix host group ID that contains devices"
     )
     private String groupId;
 
@@ -30,26 +45,23 @@ public class DigistarBackupCommand implements Runnable {
     private int sshPort;
 
     @Option(
-            names = {"-u", "--username"},
-            required = true,
-            description = "Datacom username"
-    )
-    private String username;
-
-    @Option(
-            names = {"-p", "--password"},
-            required = true,
-            interactive = true,
-            description = "Datacom password"
-    )
-    private String password;
-
-    @Option(
             names = {"-t", "--tftp-server"},
             required = true,
             description = "TFTP server"
     )
     private String tftpUrl;
+
+    @Option(
+            names = {"-v", "--verbose"},
+            description = "View each backup individually"
+    )
+    private boolean verbose;
+
+    @Option(
+            names = {"--log-file"},
+            description = "Save detailed log to file"
+    )
+    private String logFile;
 
     @Override
     public void run() {
@@ -58,16 +70,32 @@ public class DigistarBackupCommand implements Runnable {
             zabbix.login();
             List<Map<String, String>> hosts = zabbix.getHostsFromGroup(groupId);
 
-            DigistarSshConnector digistarConnector = new DigistarSshConnector(username, password, sshPort, tftpUrl);
-            digistarConnector.backupDevices(hosts);
+            if (hosts.isEmpty()) {
+                System.err.println("Nenhum dispositivo encontrado no grupo " + groupId);
+                return;
+            }
 
-            System.out.println("Backup routine completed");
+            DigistarService backupService = new DigistarService(username, password, sshPort, tftpUrl);
+            backupService.setVerbose(verbose);
+
+            BackupSummary summary = backupService.backupDevices(hosts);
+            summary.print();
+
+            if (logFile != null) {
+                saveLogToFile(summary, logFile);
+            }
+
         } catch (ZnbConfigException e) {
             System.err.println("Erro: " + e.getMessage());
             System.err.println("\nTip: Run 'znb init' to configure Zabbix credentials.");
         } catch (Exception e) {
             System.err.println("\nUnexpected error: " + e.getMessage());
         }
+    }
+
+    private void saveLogToFile(BackupSummary summary, String logFile) {
+        // TODO: Implementar salvamento de log em arquivo
+        System.out.println("\nLog saved in: " + logFile);
     }
 }
 

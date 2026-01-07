@@ -1,6 +1,11 @@
 package com.dionialves.core.connectors;
 
+import com.dionialves.core.util.ProgressBar;
+import com.dionialves.model.BackupResult;
+import com.dionialves.model.BackupSummary;
 import com.jcraft.jsch.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -12,18 +17,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 
-public abstract class DeviceSshConnector {
+public abstract class DeviceService {
+    protected static final Logger logger = LoggerFactory.getLogger(DeviceService.class);
+
     protected final String username;
     protected final String password;
     protected final String vendor;
     protected final int port;
     protected String commandForBackup;
+    private boolean verbose = false;
 
     protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     protected static final int CONNECTION_TIMEOUT_MS = 10_000;
     protected String backupFileExtension;
 
-    public DeviceSshConnector(String username, String password, int port, String vendor) {
+    public DeviceService(String username, String password, int port, String vendor) {
         this.username = username;
         this.password = password;
         this.vendor = vendor;
@@ -32,13 +40,29 @@ public abstract class DeviceSshConnector {
         this.backupFileExtension = ".cfg";
     }
 
-    public void backupDevices(List<Map<String, String>> devices) throws JSchException, IOException {
+    public BackupSummary backupDevices(List<Map<String, String>> devices) throws JSchException, IOException {
 
         String backupDir = this.createBackupDirectory(this.vendor);
+        BackupSummary summary = new BackupSummary();
+
+        if (verbose) {
+            System.out.println("Iniciando backup de " + devices.size() + " dispositivos...\n");
+        }
+
+        ProgressBar progressBar = new ProgressBar("Backup", devices.size());
 
         for (Map<String, String> device : devices) {
-            this.backupDevice(device.get("ip"), backupDir);
+            BackupResult result = this.backupDevice(device.get("ip"), backupDir);
+            summary.add(result);
+
+            progressBar.setExtraMessage(device.get("ip"));
+            progressBar.step();
         }
+
+        progressBar.close();
+
+        summary.finish();
+        return summary;
     }
 
     private String createBackupDirectory(String vendor) throws IOException {
@@ -55,7 +79,7 @@ public abstract class DeviceSshConnector {
         return todayDir;
     }
 
-    protected void backupDevice(String ip, String backupDir) throws JSchException {
+    protected BackupResult backupDevice(String ip, String backupDir) throws JSchException {
         String filename = ip + backupFileExtension;
         String filePath = backupDir + "/" + filename;
 
@@ -63,17 +87,31 @@ public abstract class DeviceSshConnector {
             Session session = this.connect(ip);
 
             if (!session.isConnected()) {
-                System.out.println("FAILURE: " + ip + " - Session could not be established.");
-                return;
+                String errorMsg = "Sessão não estabelecida";
+                logger.warn("Falha ao conectar em {}: {}", ip, errorMsg);
+                return BackupResult.failure(ip, errorMsg);
             }
 
             String config = readDeviceConfiguration(session);
             writeConfigToFile(config, filePath);
 
-            System.out.println("SUCCESS: " + ip);
+            logger.debug("Backup realizado com sucesso: {}", ip);
+            return BackupResult.success(ip);
+        }
+        catch (JSchException e) {
+            String errorMsg = "Erro de conexão SSH: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
         catch (IOException e) {
-            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
+            String errorMsg = "Erro de I/O: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
+        }
+        catch (Exception e) {
+            String errorMsg = "Erro inesperado: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            return BackupResult.failure(ip, errorMsg);
         }
     }
 
@@ -88,7 +126,6 @@ public abstract class DeviceSshConnector {
         try {
             session.connect(CONNECTION_TIMEOUT_MS);
         } catch (JSchException e) {
-            System.out.println("FAILURE: " + ip + " - " + e.getMessage());
             session.disconnect();
         }
 
@@ -194,6 +231,10 @@ public abstract class DeviceSshConnector {
     private void writeConfigToFile(String config, String filePath) throws IOException {
         Files.createDirectories(Paths.get(filePath).getParent());
         Files.writeString(Paths.get(filePath), config);
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 }
 
