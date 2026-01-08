@@ -1,6 +1,6 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.connectors.MimosaService;
+import com.dionialves.core.service.MimosaService;
 import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import com.dionialves.model.BackupSummary;

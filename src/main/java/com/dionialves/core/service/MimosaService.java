@@ -1,4 +1,4 @@
-package com.dionialves.core.connectors;
+package com.dionialves.core.service;
 
 import com.dionialves.core.util.ProgressBar;
 import com.dionialves.model.BackupResult;
@@ -30,8 +30,6 @@ public class MimosaService {
     private final String password;
     private final int port;
     private final String vendor;
-    private boolean verbose = false;
-
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     private static final String LOGIN_PATH = "/login.php";
@@ -49,14 +47,7 @@ public class MimosaService {
         BackupSummary summary = new BackupSummary();
         Path backupDir = this.createBackupDirectory(this.vendor);
 
-        if (verbose) {
-            System.out.println("Iniciando backup de " + devices.size() + " dispositivos Mimosa...\n");
-        }
-
-        ProgressBar progressBar = null;
-        if (!verbose) {
-            progressBar = new ProgressBar("Backup Mimosa", devices.size());
-        }
+        ProgressBar progressBar = new ProgressBar("Backup Mimosa", devices.size());
 
         for (Map<String, String> device : devices) {
             String ip = device.get("ip");
@@ -64,17 +55,12 @@ public class MimosaService {
             BackupResult result = this.backupDevice(ip, backupDir);
             summary.add(result);
 
-            if (verbose) {
-                System.out.println(result.toString());
-            } else if (progressBar != null) {
-                progressBar.setExtraMessage(ip);
-                progressBar.step();
-            }
 
+            progressBar.setExtraMessage(ip);
+            progressBar.step();
         }
-        if (progressBar != null) {
-            progressBar.close();
-        }
+
+        progressBar.close();
 
         summary.finish();
         return summary;
@@ -93,7 +79,7 @@ public class MimosaService {
             Files.createDirectories(todayDir);
         } catch (IOException e) {
             throw new UncheckedIOException(
-                    "Erro ao criar diretório de backup: " + todayDir, e
+                    "Error creating backup directory: " + todayDir, e
             );
         }
 
@@ -112,32 +98,32 @@ public class MimosaService {
 
                 // Validar se o arquivo foi salvo corretamente
                 if (Files.exists(outputFile) && Files.size(outputFile) > 0) {
-                    logger.debug("Backup realizado com sucesso: {}", ip);
+                    logger.debug("Backup performed successfully: {}", ip);
                     return BackupResult.success(ip);
                 } else {
-                    String errorMsg = "Arquivo vazio ou download falhou";
-                    logger.warn("Falha no backup de {}: {}", ip, errorMsg);
+                    String errorMsg = "Empty file or download failed";
+                    logger.warn("Backup failed {}: {}", ip, errorMsg);
                     Files.deleteIfExists(outputFile);
                     return BackupResult.failure(ip, errorMsg);
                 }
             } else {
-                String errorMsg = "Falha na autenticação";
-                logger.warn("Falha ao autenticar em {}", ip);
+                String errorMsg = "Authentication failed";
+                logger.warn("Failed to authenticate to {}", ip);
                 return BackupResult.failure(ip, errorMsg);
             }
 
         } catch (IOException e) {
-            String errorMsg = "Erro de I/O: " + e.getMessage();
-            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            String errorMsg = "I/O error: " + e.getMessage();
+            logger.error("Error when backing up {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         } catch (InterruptedException e) {
-            String errorMsg = "Operação interrompida: " + e.getMessage();
-            logger.error("Backup interrompido para {}: {}", ip, errorMsg);
+            String errorMsg = "Operation interrupted: " + e.getMessage();
+            logger.error("Backup stopped for {}: {}", ip, errorMsg);
             Thread.currentThread().interrupt();
             return BackupResult.failure(ip, errorMsg);
         } catch (Exception e) {
-            String errorMsg = "Erro inesperado: " + e.getMessage();
-            logger.error("Erro inesperado ao fazer backup de {}: {}", ip, errorMsg);
+            String errorMsg = "Unexpected error: " + e.getMessage();
+            logger.error("Unexpected error when backing up {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
     }
@@ -191,9 +177,5 @@ public class MimosaService {
 
     public String setPassword(String password) {
         return password.replace("&", "%26");
-    }
-
-    public void setVerbose(boolean verbose) {
-        this.verbose = verbose;
     }
 }

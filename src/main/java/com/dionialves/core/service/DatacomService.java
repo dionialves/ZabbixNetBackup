@@ -1,4 +1,4 @@
-package com.dionialves.core.connectors;
+package com.dionialves.core.service;
 
 public class DatacomService extends DeviceService {
 

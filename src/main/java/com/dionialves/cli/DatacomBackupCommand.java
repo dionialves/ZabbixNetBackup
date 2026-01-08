@@ -1,6 +1,6 @@
 package com.dionialves.cli;
 
-import com.dionialves.core.connectors.DatacomService;
+import com.dionialves.core.service.DatacomService;
 import com.dionialves.core.exception.ZnbConfigException;
 import com.dionialves.core.integration.ZabbixClient;
 import com.dionialves.model.BackupSummary;

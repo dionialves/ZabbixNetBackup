@@ -1,4 +1,4 @@
-package com.dionialves.core.connectors;
+package com.dionialves.core.service;
 
 import com.dionialves.model.BackupResult;
 import com.jcraft.jsch.ChannelShell;
@@ -30,8 +30,8 @@ public class DigistarService extends DeviceService {
             Session session = this.connect(ip);
 
             if (!session.isConnected()) {
-                String errorMsg = "Sessão não estabelecida";
-                logger.warn("Falha ao conectar em {}: {}", ip, errorMsg);
+                String errorMsg = "Session not established";
+                logger.warn("Failed to connect to {}: {}", ip, errorMsg);
                 return BackupResult.failure(ip, errorMsg);
             }
 
@@ -39,18 +39,18 @@ public class DigistarService extends DeviceService {
             return BackupResult.success(ip);
         }
         catch (JSchException e) {
-            String errorMsg = "Erro de conexão SSH: " + e.getMessage();
-            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            String errorMsg = "SSH connection error: " + e.getMessage();
+            logger.error("Error when backing up{}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
         catch (IOException e) {
             String errorMsg = "Erro de I/O: " + e.getMessage();
-            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            logger.error("Error when backing up{}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
         catch (Exception e) {
-            String errorMsg = "Erro inesperado: " + e.getMessage();
-            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
+            String errorMsg = "Unexpected error:" + e.getMessage();
+            logger.error("Error when backing up {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
     }

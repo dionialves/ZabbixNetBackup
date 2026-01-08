@@ -1,12 +1,12 @@
-package com.dionialves.core.connectors;
+package com.dionialves.core.service;
 
 import java.util.Properties;
 
-public class CiscoService extends DeviceService {
+public class UbiquitiService extends DeviceService {
 
-    public CiscoService(String username, String password, int sshPort) {
-        super(username, password, sshPort, "cisco");
-        this.commandForBackup = "show running-config";
+    public UbiquitiService(String username, String password, int sshPort) {
+        super(username, password, sshPort, "ubiquiti");
+        this.commandForBackup = "cat /tmp/system.cfg";
     }
 
     @Override
@@ -20,3 +20,4 @@ public class CiscoService extends DeviceService {
         return config;
     }
 }
+
