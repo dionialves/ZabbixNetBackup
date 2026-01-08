@@ -45,12 +45,6 @@ public class DatacomBackupCommand implements Runnable {
     )
     private int sshPort;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "View each backup individually"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
         try {
@@ -64,7 +58,6 @@ public class DatacomBackupCommand implements Runnable {
             }
 
             DatacomService backupService = new DatacomService(username, password, sshPort);
-            backupService.setVerbose(verbose);
 
             BackupSummary summary = backupService.backupDevices(hosts);
             summary.print();

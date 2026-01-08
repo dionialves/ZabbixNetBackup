@@ -98,7 +98,6 @@ public class MimosaService {
 
                 // Validar se o arquivo foi salvo corretamente
                 if (Files.exists(outputFile) && Files.size(outputFile) > 0) {
-                    logger.debug("Backup performed successfully: {}", ip);
                     return BackupResult.success(ip);
                 } else {
                     String errorMsg = "Empty file or download failed";

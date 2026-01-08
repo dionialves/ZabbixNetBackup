@@ -60,6 +60,8 @@ public abstract class DeviceService {
         return summary;
     }
 
+    protected abstract boolean validateBackupContent(String content);
+
     private String createBackupDirectory(String vendor) throws IOException {
         String baseDir = System.getProperty("user.dir");
         String backupRoot = Paths.get(baseDir, "backup", vendor).toString();
@@ -88,10 +90,16 @@ public abstract class DeviceService {
             }
 
             String config = readDeviceConfiguration(session);
-            writeConfigToFile(config, filePath);
 
-            logger.debug("Backup performed successfully: {}", ip);
-            return BackupResult.success(ip);
+            if (!this.validateBackupContent(config)) {
+                String errorMsg = "No valid configuration pattern found";
+                logger.error("No valid configuration pattern found for ip {}", ip);
+                return BackupResult.failure(ip, errorMsg);
+
+            }else {
+                writeConfigToFile(config, filePath);
+                return BackupResult.success(ip);
+            }
         }
         catch (JSchException e) {
             String errorMsg = "SSH connection error:" + e.getMessage();

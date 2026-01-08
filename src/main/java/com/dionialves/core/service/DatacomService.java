@@ -7,4 +7,8 @@ public class DatacomService extends DeviceService {
         this.commandForBackup = "show running-config | nomore";
     }
 
+    @Override
+    protected boolean validateBackupContent(String content) {
+        return true;
+    }
 }

@@ -45,12 +45,6 @@ public class CiscoBackupCommand implements Runnable {
     )
     private String groupId;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "View each backup individually"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
         try {
@@ -64,7 +58,6 @@ public class CiscoBackupCommand implements Runnable {
             }
 
             CiscoService backupService = new CiscoService(username, password, sshPort);
-            backupService.setVerbose(verbose);
 
             BackupSummary summary = backupService.backupDevices(hosts);
             summary.print();

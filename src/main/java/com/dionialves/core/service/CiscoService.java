@@ -10,6 +10,11 @@ public class CiscoService extends DeviceService {
     }
 
     @Override
+    protected boolean validateBackupContent(String content) {
+        return true;
+    }
+
+    @Override
     protected Properties getConfig() {
 
         Properties config = new Properties();

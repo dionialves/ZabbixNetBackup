@@ -51,12 +51,6 @@ public class DigistarBackupCommand implements Runnable {
     )
     private String tftpUrl;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "View each backup individually"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
         try {
@@ -70,7 +64,6 @@ public class DigistarBackupCommand implements Runnable {
             }
 
             DigistarService backupService = new DigistarService(username, password, sshPort, tftpUrl);
-            backupService.setVerbose(verbose);
 
             BackupSummary summary = backupService.backupDevices(hosts);
             summary.print();

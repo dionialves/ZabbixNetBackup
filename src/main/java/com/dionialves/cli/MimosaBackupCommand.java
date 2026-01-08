@@ -38,12 +38,6 @@ public class MimosaBackupCommand implements Runnable {
     )
     private String groupId;
 
-    @Option(
-            names = {"-v", "--verbose"},
-            description = "View each backup individually"
-    )
-    private boolean verbose;
-
     @Override
     public void run() {
 
@@ -58,7 +52,6 @@ public class MimosaBackupCommand implements Runnable {
             }
 
             MimosaService backupService = new MimosaService( password, httpPort);
-            backupService.setVerbose(verbose);
 
             BackupSummary summary = backupService.backupDevices(hosts);
             summary.print();
