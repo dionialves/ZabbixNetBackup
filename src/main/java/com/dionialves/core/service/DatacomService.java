@@ -6,9 +6,4 @@ public class DatacomService extends DeviceService {
         super(username, password, sshPort, "datacom");
         this.commandForBackup = "show running-config | nomore";
     }
-
-    @Override
-    protected boolean validateBackupContent(String content) {
-        return true;
-    }
 }

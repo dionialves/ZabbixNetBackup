@@ -21,11 +21,6 @@ public class DigistarService extends DeviceService {
     }
 
     @Override
-    protected boolean validateBackupContent(String content) {
-        return true;
-    }
-
-    @Override
     protected BackupResult backupDevice(String ip, String backupDir) throws JSchException {
 
         String data = LocalDate.now().format(DATE_FORMATTER);

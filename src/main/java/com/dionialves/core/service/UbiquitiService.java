@@ -10,30 +10,6 @@ public class UbiquitiService extends DeviceService {
     }
 
     @Override
-    protected boolean validateBackupContent(String content) {
-        String contentLower = content.toLowerCase();
-
-        if (content.length() < 100) {
-            return false;
-        }
-
-        String[] validPatterns = {
-                "netconf.",
-                "bridge.",
-                "radio.",
-                "wireless."
-        };
-
-        for (String pattern : validPatterns) {
-            if (contentLower.contains(pattern.toLowerCase())) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    @Override
     protected Properties getConfig() {
 
         Properties config = new Properties();

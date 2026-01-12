@@ -25,6 +25,7 @@ public abstract class DeviceService {
     protected final String vendor;
     protected final int port;
     protected String commandForBackup;
+    private boolean verbose = false;
 
     protected static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
     protected static final int CONNECTION_TIMEOUT_MS = 10_000;
@@ -44,6 +45,10 @@ public abstract class DeviceService {
         String backupDir = this.createBackupDirectory(this.vendor);
         BackupSummary summary = new BackupSummary();
 
+        if (verbose) {
+            System.out.println("Starting backup of " + devices.size() + " devices...\n");
+        }
+
         ProgressBar progressBar = new ProgressBar("Backup", devices.size());
 
         for (Map<String, String> device : devices) {
@@ -60,8 +65,6 @@ public abstract class DeviceService {
         return summary;
     }
 
-    protected abstract boolean validateBackupContent(String content);
-
     private String createBackupDirectory(String vendor) throws IOException {
         String baseDir = System.getProperty("user.dir");
         String backupRoot = Paths.get(baseDir, "backup", vendor).toString();
@@ -70,7 +73,7 @@ public abstract class DeviceService {
         try {
             Files.createDirectories(Paths.get(todayDir));
         } catch (IOException e) {
-            throw new UncheckedIOException("Error creating backup directory: " + todayDir, e);
+            throw new UncheckedIOException("Erro ao criar diretório de backup: " + todayDir, e);
         }
 
         return todayDir;
@@ -84,36 +87,30 @@ public abstract class DeviceService {
             Session session = this.connect(ip);
 
             if (!session.isConnected()) {
-                String errorMsg = "Session not established";
-                logger.warn("Failed to connect to {}: {}", ip, errorMsg);
+                String errorMsg = "Sessão não estabelecida";
+                logger.warn("Falha ao conectar em {}: {}", ip, errorMsg);
                 return BackupResult.failure(ip, errorMsg);
             }
 
             String config = readDeviceConfiguration(session);
+            writeConfigToFile(config, filePath);
 
-            if (!this.validateBackupContent(config)) {
-                String errorMsg = "No valid configuration pattern found";
-                logger.error("No valid configuration pattern found for ip {}", ip);
-                return BackupResult.failure(ip, errorMsg);
-
-            }else {
-                writeConfigToFile(config, filePath);
-                return BackupResult.success(ip);
-            }
+            logger.debug("Backup realizado com sucesso: {}", ip);
+            return BackupResult.success(ip);
         }
         catch (JSchException e) {
-            String errorMsg = "SSH connection error:" + e.getMessage();
-            logger.error("Error when backing up {}: {}", ip, errorMsg);
+            String errorMsg = "Erro de conexão SSH: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
         catch (IOException e) {
-            String errorMsg = "I/O error: " + e.getMessage();
-            logger.error("Error when backing up {}: {}", ip, errorMsg);
+            String errorMsg = "Erro de I/O: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
         catch (Exception e) {
-            String errorMsg = "Unexpected error: " + e.getMessage();
-            logger.error("Error when backing up{}: {}", ip, errorMsg);
+            String errorMsg = "Erro inesperado: " + e.getMessage();
+            logger.error("Erro ao fazer backup de {}: {}", ip, errorMsg);
             return BackupResult.failure(ip, errorMsg);
         }
     }
@@ -158,9 +155,86 @@ public abstract class DeviceService {
         }
     }
 
+    protected void executeCommand(Session session, String command) throws JSchException, IOException {
+        ChannelExec channel = null;
+        try {
+            channel = (ChannelExec) session.openChannel("exec");
+
+            channel.setCommand(command);
+            channel.setInputStream(null);
+            channel.setErrStream(System.err);
+
+            channel.connect();
+
+        } finally {
+            if (channel != null && channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    protected void executeInteractiveCommands(Session session, List<String> commands) throws JSchException, IOException {
+        ChannelShell channel = null;
+        try {
+            channel = (ChannelShell) session.openChannel("shell");
+
+            InputStream input = channel.getInputStream();
+            OutputStream output = channel.getOutputStream();
+
+            channel.connect();
+
+            for (String cmd : commands) {
+                output.write((cmd + "\n").getBytes(StandardCharsets.UTF_8));
+                output.flush();
+
+                // Pequena espera para o equipamento responder
+                Thread.sleep(500);
+            }
+
+            // Opcional: ler saída
+            byte[] buffer = new byte[4096];
+            while (input.available() > 0) {
+                int bytesRead = input.read(buffer);
+                if (bytesRead < 0) break;
+                System.out.print(new String(buffer, 0, bytesRead));
+            }
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } finally {
+            if (channel != null && channel.isConnected()) {
+                channel.disconnect();
+            }
+        }
+    }
+
+    protected String cleanOutput(String output) {
+        String[] lines = output.split("\n");
+        StringBuilder cleaned = new StringBuilder();
+
+        boolean started = false;
+        for (String line : lines) {
+            String trimmed = line.trim();
+            if (trimmed.startsWith("show running-config") || trimmed.startsWith("terminal length 0") || trimmed.startsWith("exit")) {
+                continue;
+            }
+            if (trimmed.contains("Building configuration") || trimmed.startsWith("Current configuration") || trimmed.startsWith("!")) {
+                started = true;
+            }
+            if (started) {
+                cleaned.append(line).append("\n");
+            }
+        }
+        return cleaned.toString();
+    }
+
     private void writeConfigToFile(String config, String filePath) throws IOException {
         Files.createDirectories(Paths.get(filePath).getParent());
         Files.writeString(Paths.get(filePath), config);
+    }
+
+    public void setVerbose(boolean verbose) {
+        this.verbose = verbose;
     }
 }
 
