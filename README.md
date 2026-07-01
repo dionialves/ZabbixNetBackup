@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/dionialves/ZabbixNetBackup/main/ins
 ```
 
 > O script de instalação executa os seguintes passos automaticamente:
-> 1. Verifica se o Java 21 está instalado; se não, pede autorização para instalá-lo
+> 1. Verifica se o Java 21 está instalado; se não, exibe instruções de instalação e aborta
 > 2. Clona o repositório para um diretório temporário
 > 3. Compila o projeto com Maven (`mvn clean package`)
 > 4. Gera o executável `znb` (self-executable jar) em `target/`
@@ -112,6 +112,31 @@ Fabricantes suportados (subcomandos de `backup`):
 | `digistar` | Digistar   |
 | `mimosa`   | Mimosa     |
 | `ubiquiti` | Ubiquiti   |
+
+## Desinstalação
+
+O `znb` não cria serviços, variáveis de ambiente globais nem arquivos fora do diretório pessoal do usuário. Para remover tudo:
+
+1. **Remova o executável:**
+   ```bash
+   rm -f ~/.local/bin/znb
+   ```
+
+2. **Remova a configuração e os backups** (opcional):
+   ```bash
+   rm -rf ~/.znb
+   ```
+
+3. **Remova a entrada do `PATH`** (se adicionada durante a instalação):
+   ```bash
+   # zsh
+   sed -i '' '/\.local\/bin/d' ~/.zshrc
+
+   # bash (Linux/macOS)
+   sed -i '/\.local\/bin/d' ~/.bashrc
+   ```
+
+> Caso tenha instalado o Java 21 **apenas** para usar o `znb` e não precise mais dele, remova-o com o mesmo gerenciador usado na instalação (`brew uninstall openjdk@21`, `sudo apt-get remove openjdk-21-jdk`, etc.).
 
 ## Atualização
 
