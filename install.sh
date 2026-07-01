@@ -55,7 +55,7 @@ verify_java() {
         Darwin)
             if command_exists brew; then
                 printf "Java 21 can be installed via Homebrew.\n"
-                read -rp "Do you want to install OpenJDK 21 via Homebrew? [y/N] " answer
+                read -rp "Do you want to install OpenJDK 21 via Homebrew? [y/N] " answer </dev/tty
                 if [[ "${answer}" =~ ^[Yy]$ ]]; then
                     info "Installing OpenJDK 21 via Homebrew..."
                     brew install openjdk@21
@@ -71,7 +71,7 @@ verify_java() {
         Linux)
             if command_exists apt-get; then
                 printf "Java 21 can be installed via apt.\n"
-                read -rp "Do you want to install OpenJDK 21 via apt (sudo required)? [y/N] " answer
+                    read -rp "Do you want to install OpenJDK 21 via apt (sudo required)? [y/N] " answer </dev/tty
                 if [[ "${answer}" =~ ^[Yy]$ ]]; then
                     info "Installing OpenJDK 21 via apt..."
                     sudo apt-get update
@@ -81,7 +81,7 @@ verify_java() {
                 fi
             elif command_exists dnf; then
                 printf "Java 21 can be installed via dnf.\n"
-                read -rp "Do you want to install OpenJDK 21 via dnf (sudo required)? [y/N] " answer
+                read -rp "Do you want to install OpenJDK 21 via dnf (sudo required)? [y/N] " answer </dev/tty
                 if [[ "${answer}" =~ ^[Yy]$ ]]; then
                     info "Installing OpenJDK 21 via dnf..."
                     sudo dnf install -y java-21-openjdk-devel
@@ -90,7 +90,7 @@ verify_java() {
                 fi
             elif command_exists pacman; then
                 printf "Java 21 can be installed via pacman.\n"
-                read -rp "Do you want to install OpenJDK 21 via pacman (sudo required)? [y/N] " answer
+                read -rp "Do you want to install OpenJDK 21 via pacman (sudo required)? [y/N] " answer </dev/tty
                 if [[ "${answer}" =~ ^[Yy]$ ]]; then
                     info "Installing OpenJDK 21 via pacman..."
                     sudo pacman -S --noconfirm jdk-openjdk
@@ -118,7 +118,7 @@ clone_repo() {
 
     if [[ -d "${CLONE_DIR}" ]]; then
         warn "Source directory already exists at ${CLONE_DIR}"
-        read -rp "Remove it and clone again? [y/N] " answer
+        read -rp "Remove it and clone again? [y/N] " answer </dev/tty
         if [[ "${answer}" =~ ^[Yy]$ ]]; then
             rm -rf "${CLONE_DIR}"
         else
@@ -246,6 +246,16 @@ main() {
     printf "\033[1;36m  ZabbixNetBackup - Installer\033[0m\n"
     printf "\033[1;36m============================================\033[0m\n"
     printf "\n"
+
+    # Refuse to run when stdin is piped (e.g. `curl ... | bash`) and no tty is
+    # available, otherwise the interactive prompts below would hit EOF and the
+    # script would abort silently due to `set -e`.
+    if [[ ! -t 0 && ! -e /dev/tty ]]; then
+        fail "This installer is interactive and needs a terminal for input.
+  Download it first and run it directly:
+    curl -fsSL ${REPO_URL%.git}/main/install.sh -o install.sh
+    bash install.sh"
+    fi
 
     verify_java
     clone_repo
