@@ -30,7 +30,7 @@ public class InitCommand implements Runnable {
             return;
         }
 
-        String zabbixUrl = console.readLine("Zabbix URL: ");
+        String zabbixUrl = readZabbixUrl(console);
         String zabbixUsername = console.readLine("Zabbix API username: ");
         char[] passwordChars = console.readPassword("Zabbix API password: ");
         String zabbixPassword = new String(passwordChars);
@@ -62,5 +62,29 @@ public class InitCommand implements Runnable {
         } catch (IOException e) {
             System.err.println("Failed to write configuration: " + e.getMessage());
         }
+    }
+
+    private static String readZabbixUrl(Console console) {
+        System.out.println("\nDigite a URL completa do endpoint JSON-RPC do Zabbix.");
+        System.out.println("  Ex.: http://servidor/zabbix/api_jsonrpc.php");
+        System.out.println("       https://zabbix.exemplo.com/api_jsonrpc.php");
+        System.out.println();
+        String url = console.readLine("Zabbix URL: ");
+        if (url == null) {
+            System.err.println("Nao foi possivel ler a URL (stdin fechado). Rode 'znb init' em um terminal.");
+            System.exit(1);
+        }
+        url = url.trim();
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+            System.err.println("A URL deve comecar com 'http://' ou 'https://'.");
+            System.err.println("Ex.: http://servidor/zabbix/api_jsonrpc.php");
+            System.exit(1);
+        }
+        if (!url.endsWith("api_jsonrpc.php")) {
+            System.err.println("A URL deve terminar com 'api_jsonrpc.php'.");
+            System.err.println("Ex.: http://servidor/zabbix/api_jsonrpc.php");
+            System.exit(1);
+        }
+        return url;
     }
 }

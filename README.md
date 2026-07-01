@@ -77,6 +77,22 @@ O comando `init` pede interativamente a URL, usuário e senha da API do Zabbix e
 znb init
 ```
 
+> **Atenção à URL do Zabbix:** informe a URL **completa** do endpoint JSON-RPC,
+> terminando em `api_jsonrpc.php`. Se a URL estiver no formato errado (sem
+> `http://`/`https://` ou sem o sufixo `api_jsonrpc.php`), o `init` aborta com
+> uma mensagem de erro.
+>
+> Exemplos válidos:
+> ```
+> http://192.168.0.100/zabbix/api_jsonrpc.php
+> https://zabbix.minhaempresa.com.br/api_jsonrpc.php
+> ```
+>
+> Se o Zabbix estiver na raiz do domínio (sem `/zabbix`), a URL fica:
+> ```
+> https://zabbix.minhaempresa.com.br/api_jsonrpc.php
+> ```
+
 Para sobrescrever uma configuração existente:
 
 ```bash
@@ -97,21 +113,38 @@ Exemplo — backup de Mikrotiks do host group `209`:
 znb backup mikrotik -u admin -p -g 209
 ```
 
-- `-u` / `--username` — usuário SSH do dispositivo
-- `-p` / `--password` — senha (pedida interativamente, sem ecoar)
-- `-g` / `--group-id` — ID do host group no Zabbix
-- `-P` / `--ssh-port` — porta SSH (default: `22`)
+Exemplo completo de uso:
+
+```bash
+# 1. Configure as credenciais do Zabbix (uma vez por maquina)
+znb init
+#   Zabbix URL: http://192.168.0.100/zabbix/api_jsonrpc.php
+#   Zabbix API username: Admin
+#   Zabbix API password: ********
+
+# 2. Execute o backup dos Mikrotiks do host group 209
+znb backup mikrotik -u admin -p -g 209
+#   Password: ********
+```
 
 Fabricantes suportados (subcomandos de `backup`):
 
-| Comando    | Fabricante |
-|------------|------------|
-| `mikrotik`  | Mikrotik   |
-| `cisco`    | Cisco      |
-| `datacom`  | Datacom    |
-| `digistar` | Digistar   |
-| `mimosa`   | Mimosa     |
-| `ubiquiti` | Ubiquiti   |
+| Comando    | Fabricante | Protocolo  | Opções específicas                                   |
+|------------|------------|------------|------------------------------------------------------|
+| `mikrotik`  | Mikrotik   | SSH        | `-u`, `-p`, `-g`, `-P` (porta SSH, default 22)        |
+| `cisco`    | Cisco      | SSH        | `-u`, `-p`, `-g`, `-P` (porta SSH, default 22)        |
+| `datacom`  | Datacom    | SSH        | `-u`, `-p`, `-g`, `-P` (porta SSH, default 22)        |
+| `digistar` | Digistar   | SSH + TFTP | `-u`, `-p`, `-g`, `-P` (SSH), `--tftp-url` (servidor TFTP) |
+| `mimosa`   | Mimosa     | HTTP       | `-p`, `-g`, `--http-port` (porta HTTP, default 80)    |
+| `ubiquiti` | Ubiquiti   | SSH        | `-u`, `-p`, `-g`, `-P` (porta SSH, default 22)       |
+
+> **Opções comuns a todos os fabricantes:**
+> - `-u` / `--username` — usuário do dispositivo (não usado pelo Mimosa, que usa senha fixa)
+> - `-p` / `--password` — senha (pedida interativamente, sem ecoar)
+> - `-g` / `--group-id` — ID do host group no Zabbix
+> - `-P` / `--ssh-port` — porta SSH (default: `22`)
+
+> **Observação sobre o Digistar:** o backup é feito via TFTP, então é obrigatório informar `--tftp-url` apontando para o servidor TFTP onde o backup será transferido.
 
 ## Desinstalação
 
