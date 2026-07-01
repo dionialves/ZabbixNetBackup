@@ -5,7 +5,7 @@ set -euo pipefail
 # ZabbixNetBackup - Installation script
 # ============================================================================
 # This script:
-#   1. Verifies Java 21 is installed (asks permission to install if not)
+#   1. Verifies Java 21 is installed (warns the user if not, then aborts)
 #   2. Clones the ZabbixNetBackup repository
 #   3. Builds the project with Maven
 #   4. Generates the self-executable `znb` file
@@ -33,81 +33,65 @@ command_exists() { command -v "$1" >/dev/null 2>&1; }
 verify_java() {
     info "Verifying Java 21..."
 
+    java_version=""
     if command_exists java; then
-        java_version=$(java -version 2>&1 | head -n1 | sed -E 's/.*version "([0-9]+).*/\1/')
-        if [[ "${java_version}" -ge 21 ]]; then
-            ok "Java ${java_version} found."
-            return 0
-        fi
-        warn "Java ${java_version} found, but Java 21 or higher is required."
-    else
-        warn "Java is not installed."
+        # Capture version without letting `set -e` abort the script when the
+        # command exits non-zero (e.g. a version manager shim with no version
+        # selected, or a broken JAVA_HOME).
+        java_version=$(java -version 2>&1 | head -n1 | sed -E 's/.*version "([0-9]+).*/\1/' || true)
     fi
 
-    # Ask the user for permission to install Java 21
+    # Treat empty/non-numeric version as "not found".
+    if [[ -z "${java_version}" ]] || ! [[ "${java_version}" =~ ^[0-9]+$ ]]; then
+        warn "Java 21 (or higher) was not found on this system."
+    elif [[ "${java_version}" -ge 21 ]]; then
+        ok "Java ${java_version} found."
+        return 0
+    else
+        warn "Java ${java_version} found, but Java 21 or higher is required."
+    fi
+
+    # ------------------------------------------------------------------
+    # Java 21 is required. Show install instructions and abort.
+    # ------------------------------------------------------------------
     printf "\n"
     printf "Java 21 is required to build and run znb.\n"
     printf "Detected OS: %s\n" "$(uname -s)"
+    printf "\n"
+    printf "Please install Java 21 using one of the commands below,\n"
+    printf "then re-run this installer:\n"
     printf "\n"
 
     OS="$(uname -s)"
     case "${OS}" in
         Darwin)
-            if command_exists brew; then
-                printf "Java 21 can be installed via Homebrew.\n"
-                read -rp "Do you want to install OpenJDK 21 via Homebrew? [y/N] " answer </dev/tty
-                if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                    info "Installing OpenJDK 21 via Homebrew..."
-                    brew install openjdk@21
-                    brew link --force openjdk@21
-                    ok "OpenJDK 21 installed."
-                    return 0
-                fi
-            else
-                warn "Homebrew is not installed. Install it from https://brew.sh and re-run this script."
-                fail "Cannot install Java 21 without Homebrew on macOS."
-            fi
+            printf "  # Using Homebrew:\n"
+            printf "  brew install openjdk@21\n"
+            printf "  brew link --force openjdk@21\n"
             ;;
         Linux)
             if command_exists apt-get; then
-                printf "Java 21 can be installed via apt.\n"
-                    read -rp "Do you want to install OpenJDK 21 via apt (sudo required)? [y/N] " answer </dev/tty
-                if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                    info "Installing OpenJDK 21 via apt..."
-                    sudo apt-get update
-                    sudo apt-get install -y openjdk-21-jdk
-                    ok "OpenJDK 21 installed."
-                    return 0
-                fi
+                printf "  # Using apt:\n"
+                printf "  sudo apt-get update\n"
+                printf "  sudo apt-get install -y openjdk-21-jdk\n"
             elif command_exists dnf; then
-                printf "Java 21 can be installed via dnf.\n"
-                read -rp "Do you want to install OpenJDK 21 via dnf (sudo required)? [y/N] " answer </dev/tty
-                if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                    info "Installing OpenJDK 21 via dnf..."
-                    sudo dnf install -y java-21-openjdk-devel
-                    ok "OpenJDK 21 installed."
-                    return 0
-                fi
+                printf "  # Using dnf:\n"
+                printf "  sudo dnf install -y java-21-openjdk-devel\n"
             elif command_exists pacman; then
-                printf "Java 21 can be installed via pacman.\n"
-                read -rp "Do you want to install OpenJDK 21 via pacman (sudo required)? [y/N] " answer </dev/tty
-                if [[ "${answer}" =~ ^[Yy]$ ]]; then
-                    info "Installing OpenJDK 21 via pacman..."
-                    sudo pacman -S --noconfirm jdk-openjdk
-                    ok "OpenJDK 21 installed."
-                    return 0
-                fi
+                printf "  # Using pacman:\n"
+                printf "  sudo pacman -S --noconfirm jdk-openjdk\n"
             else
-                warn "No supported package manager found (apt/dnf/pacman)."
-                fail "Please install Java 21 manually and re-run this script."
+                printf "  # No supported package manager found (apt/dnf/pacman).\n"
+                printf "  # Please install Java 21 manually.\n"
             fi
             ;;
         *)
-            fail "Unsupported OS: ${OS}. Please install Java 21 manually."
+            printf "  # Unsupported OS: %s. Please install Java 21 manually.\n" "${OS}"
             ;;
     esac
 
-    fail "Java 21 is required. Install it manually and re-run this script."
+    printf "\n"
+    fail "Install Java 21 (or higher) and re-run this installer."
 }
 
 # ----------------------------------------------------------------------------
@@ -117,13 +101,8 @@ clone_repo() {
     info "Cloning ZabbixNetBackup repository..."
 
     if [[ -d "${CLONE_DIR}" ]]; then
-        warn "Source directory already exists at ${CLONE_DIR}"
-        read -rp "Remove it and clone again? [y/N] " answer </dev/tty
-        if [[ "${answer}" =~ ^[Yy]$ ]]; then
-            rm -rf "${CLONE_DIR}"
-        else
-            fail "Cannot continue without a fresh clone. Aborting."
-        fi
+        warn "Source directory already exists at ${CLONE_DIR} — removing it for a fresh clone."
+        rm -rf "${CLONE_DIR}"
     fi
 
     git clone "${REPO_URL}" "${CLONE_DIR}"
@@ -246,16 +225,6 @@ main() {
     printf "\033[1;36m  ZabbixNetBackup - Installer\033[0m\n"
     printf "\033[1;36m============================================\033[0m\n"
     printf "\n"
-
-    # Refuse to run when stdin is piped (e.g. `curl ... | bash`) and no tty is
-    # available, otherwise the interactive prompts below would hit EOF and the
-    # script would abort silently due to `set -e`.
-    if [[ ! -t 0 && ! -e /dev/tty ]]; then
-        fail "This installer is interactive and needs a terminal for input.
-  Download it first and run it directly:
-    curl -fsSL ${REPO_URL%.git}/main/install.sh -o install.sh
-    bash install.sh"
-    fi
 
     verify_java
     clone_repo
