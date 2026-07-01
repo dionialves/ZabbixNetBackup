@@ -4,6 +4,7 @@ import picocli.CommandLine.Command;
 
 @Command(
         name = "backup",
+        mixinStandardHelpOptions = true,
         description = "Run backup operations for network devices",
         subcommands = {
                 MikrotikBackupCommand.class,
